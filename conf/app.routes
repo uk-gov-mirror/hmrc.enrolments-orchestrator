@@ -1,3 +1,4 @@
 # microservice specific routes
 
-GET        /hello-world             uk.gov.hmrc.enrolmentsorchestrator.controllers.MicroserviceHelloWorldController.hello
+
+DELETE      /agents/:arn   uk.gov.hmrc.enrolmentsorchestrator.controllers.ES9DeleteController.es9Delete(arn: String, terminationDate: Option[Long])

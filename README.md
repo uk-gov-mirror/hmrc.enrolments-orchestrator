@@ -1,7 +1,23 @@
 
 # enrolments-orchestrator
 
-This is a placeholder README.md for a new repository
+## Summary
+
+Agents and Traders require the capability to have their accounts and associated access suspended and terminated, the service is to fulfil this functionality.
+
+The enrolments-orchestrator service exposes a single API call:
+
+### DELETE /enrolments-orchestrator/agents/:ARN?terminationDate={termination Long}
+
+Responds with:
+
+| Status        | Message       |
+|:-------------:|---------------|
+| 204      | Done |
+| 400      | Payload incorrect or insufficient for processing.|
+| 401      | Unauthorised - the provided bearer token is either expired or not valid|
+| 500      | Service error |
+
 
 ### License
 
