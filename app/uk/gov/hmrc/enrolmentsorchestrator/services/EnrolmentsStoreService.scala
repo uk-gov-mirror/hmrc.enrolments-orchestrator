@@ -37,19 +37,19 @@ class EnrolmentsStoreService @Inject()(enrolmentsStoreConnector: EnrolmentsStore
             teResponse.status match {
               case 204 =>
               case _ =>
-                Logger.info(s"For enrolmentKey: $enrolmentKey and groupId: $groupId 204 was not returned by Tax-Enrolments, " +
+                Logger.warn(s"For enrolmentKey: $enrolmentKey and groupId: $groupId 204 was not returned by Tax-Enrolments, " +
                   s"the response is ${teResponse.status} with body ${teResponse.body}")
             }
             teResponse
           }.recover {
             case e: Upstream4xxResponse =>
-              Logger.info(s"For enrolmentKey: $enrolmentKey and groupId: $groupId 204 was not returned by Tax-Enrolments, " +
+              Logger.warn(s"For enrolmentKey: $enrolmentKey and groupId: $groupId 204 was not returned by Tax-Enrolments, " +
                 s"the response is ${e.upstreamResponseCode} with body ${e.message}")
               throw e
             case ex: Exception => throw ex
           }
         case _ =>
-          Logger.info(s"For enrolmentKey: $enrolmentKey 200 was not returned by Enrolments-Store," +
+          Logger.warn(s"For enrolmentKey: $enrolmentKey 200 was not returned by Enrolments-Store," +
             s" ie no groupId found there are no allocated groups (the enrolment itself may or may not actually exist) " +
             s"or there is nothing to return, the response is ${response.status} with body ${response.body}")
           Future.successful(response)
