@@ -16,17 +16,16 @@
 
 package uk.gov.hmrc.enrolmentsorchestrator.config
 
-import javax.inject.{Inject, Singleton}
-import play.api.Configuration
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import uk.gov.hmrc.enrolmentsorchestrator.UnitSpec
 
-@Singleton
-class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig) {
+class AppConfigSpec extends UnitSpec with GuiceOneAppPerSuite {
 
-  val auditingEnabled: Boolean        = config.get[Boolean]("auditing.enabled")
-  val graphiteHost: String            = config.get[String]("microservice.metrics.graphite.host")
+  val appConfig: AppConfig = app.injector.instanceOf[AppConfig]
 
-  val enrolmentsStoreBaseUrl:String   = servicesConfig.baseUrl("enrolment-store-proxy")
-  val taxEnrolmentsBaseUrl:String     = servicesConfig.baseUrl("tax-enrolments")
+  appConfig.auditingEnabled shouldBe true
+  appConfig.graphiteHost shouldBe "graphite"
+  appConfig.enrolmentsStoreBaseUrl shouldBe "http://localhost:9595"
+  appConfig.taxEnrolmentsBaseUrl shouldBe "http://localhost:9995"
 
 }
