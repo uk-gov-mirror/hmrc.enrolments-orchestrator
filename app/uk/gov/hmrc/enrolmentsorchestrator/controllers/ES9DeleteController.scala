@@ -19,28 +19,51 @@ package uk.gov.hmrc.enrolmentsorchestrator.controllers
 import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.enrolmentsorchestrator.services.EnrolmentsStoreService
+import uk.gov.hmrc.enrolmentsorchestrator.models.{AgentDeleteRequest, AgentDeleteResponse}
+import uk.gov.hmrc.enrolmentsorchestrator.services.{AuditService, EnrolmentsStoreService}
 import uk.gov.hmrc.http.Upstream4xxResponse
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.ExecutionContext
 
 @Singleton()
-class ES9DeleteController @Inject()(cc: ControllerComponents, enrolmentsStoreService: EnrolmentsStoreService)
-                                   (implicit executionContext: ExecutionContext) extends BackendController(cc) {
+class ES9DeleteController @Inject()(cc: ControllerComponents, enrolmentsStoreService: EnrolmentsStoreService, val auditConnector: AuditConnector, auditService: AuditService)
+                                   (implicit val executionContext: ExecutionContext) extends BackendController(cc) {
+
 
   def es9Delete(arn: String, terminationDate: Option[Long]): Action[AnyContent] = Action.async { implicit request =>
 
-    //todo: the tDate is for Audit events to use
     val tDate: Long = terminationDate.getOrElse(DateTime.now.getMillis)
     val enrolmentKey = s"HMRC-AS-AGENT~ARN~$arn"
+    val agentDeleteRequest = AgentDeleteRequest(arn, tDate)
+
+    auditService.audit(auditService.auditDeleteRequestEvent(agentDeleteRequest))
 
     enrolmentsStoreService.terminationByEnrolmentKey(enrolmentKey).map { res =>
-      new Status(res.status)(res.body)
+      {
+        if (res.status == 204) {
+          val agentDeleteResponse = AgentDeleteResponse(arn, tDate, true, res.status, None)
+          auditService.audit(auditService.auditAgentDeleteResponseEvent(agentDeleteResponse))
+        }
+        else {
+          val agentDeleteResponse = AgentDeleteResponse(arn, tDate, false, res.status, Some(res.body))
+          auditService.audit(auditService.auditAgentDeleteResponseEvent(agentDeleteResponse))
+        }
+
+        new Status(res.status)(res.body)
+      }
     }.recover {
-      case e: Upstream4xxResponse => new Status(e.upstreamResponseCode)(s"${e.message}")
-      case _ => new Status(500)("Internal service error")
+      case e: Upstream4xxResponse => {
+        val agentDeleteResponse = AgentDeleteResponse(arn, tDate, false, e.upstreamResponseCode, Some(e.message))
+        auditService.audit(auditService.auditAgentDeleteResponseEvent(agentDeleteResponse))
+        new Status(e.upstreamResponseCode)(s"${e.message}")
+      }
+      case _ => {
+        val agentDeleteResponse = AgentDeleteResponse(arn, tDate, false, 500, Some("Internal service error"))
+        auditService.audit(auditService.auditAgentDeleteResponseEvent(agentDeleteResponse))
+        new Status(500)("Internal service error")
+      }
     }
   }
-
 }

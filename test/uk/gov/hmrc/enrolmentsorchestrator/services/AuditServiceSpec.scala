@@ -13,31 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import org.scalatest.{Matchers, WordSpec}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.Json
-import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.enrolmentsorchestrator.models._
-import uk.gov.hmrc.enrolmentsorchestrator.helpers._
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.ExecutionContext
+import uk.gov.hmrc.enrolmentsorchestrator.services.AuditService
 
-class AuditHelperSpec extends WordSpec with Matchers with MockitoSugar {
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+class AuditServiceSpec extends WordSpec with Matchers with MockitoSugar {
   val AUDIT_SOURCE = "enrolments-orchestrator"
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
-  val auditHelper: AuditHelper = new AuditHelper{
-    val auditConnector: AuditConnector = mockAuditConnector
-    implicit val executionContext: ExecutionContext = global
-  }
+  val auditService = new AuditService(mockAuditConnector)
+
   "The AuditHelper" should {
     "create an AgentDeleteRequest when a request is received by the service" in {
       val auditType: String = "AgentDeleteRequest"
       val testAgentDeleteRequest: AgentDeleteRequest = AgentDeleteRequest("XXXX1234567", 15797056635L)
       val agentDeleteResponseJson = Json toJson testAgentDeleteRequest
-      val auditEventRequest = auditHelper.auditDeleteRequestEvent(testAgentDeleteRequest)
+      val auditEventRequest = auditService.auditDeleteRequestEvent(testAgentDeleteRequest)
 
       auditEventRequest.auditSource shouldBe AUDIT_SOURCE
       auditEventRequest.auditType shouldBe auditType
@@ -49,7 +42,7 @@ class AuditHelperSpec extends WordSpec with Matchers with MockitoSugar {
       val auditType: String = "AgentDeleteResponse"
       val testAgentDeleteResponse: AgentDeleteResponse = AgentDeleteResponse("XXXX1234567", 15797056635L, false: Boolean, 500, Some("Internal Server Error"))
       val agentDeleteResponseJson = Json toJson testAgentDeleteResponse
-      val auditEventResponse = auditHelper.auditAgentDeleteResponseEvent(testAgentDeleteResponse)
+      val auditEventResponse = auditService.auditAgentDeleteResponseEvent(testAgentDeleteResponse)
 
       auditEventResponse.auditSource shouldBe AUDIT_SOURCE
       auditEventResponse.auditType shouldBe auditType
@@ -61,7 +54,7 @@ class AuditHelperSpec extends WordSpec with Matchers with MockitoSugar {
       val auditType: String = "AgentDeleteResponse"
       val testAgentDeleteResponse: AgentDeleteResponse = AgentDeleteResponse("XXXX1234567", 15797056635L, true: Boolean, 200, None)
       val agentDeleteResponseJson = Json toJson testAgentDeleteResponse
-      val auditEventResponse = auditHelper.auditAgentDeleteResponseEvent(testAgentDeleteResponse)
+      val auditEventResponse = auditService.auditAgentDeleteResponseEvent(testAgentDeleteResponse)
 
       auditEventResponse.auditSource shouldBe AUDIT_SOURCE
       auditEventResponse.auditType shouldBe auditType
@@ -69,3 +62,4 @@ class AuditHelperSpec extends WordSpec with Matchers with MockitoSugar {
     }
   }
 }
+
