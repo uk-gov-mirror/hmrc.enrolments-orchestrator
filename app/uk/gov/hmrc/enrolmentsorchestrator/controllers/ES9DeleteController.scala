@@ -42,26 +42,18 @@ class ES9DeleteController @Inject()(cc: ControllerComponents, enrolmentsStoreSer
 
     enrolmentsStoreService.terminationByEnrolmentKey(enrolmentKey).map { res =>
       {
-        if (res.status == 204) {
-          val agentDeleteResponse = AgentDeleteResponse(arn, tDate, true, res.status, None)
-          auditService.audit(auditService.auditAgentDeleteResponseEvent(agentDeleteResponse))
-        }
-        else {
-          val agentDeleteResponse = AgentDeleteResponse(arn, tDate, false, res.status, Some(res.body))
-          auditService.audit(auditService.auditAgentDeleteResponseEvent(agentDeleteResponse))
-        }
+        if (res.status == 204) auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, true, res.status, None)))
+        else auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, false, res.status, Some(res.body))))
 
         new Status(res.status)(res.body)
       }
     }.recover {
       case e: Upstream4xxResponse => {
-        val agentDeleteResponse = AgentDeleteResponse(arn, tDate, false, e.upstreamResponseCode, Some(e.message))
-        auditService.audit(auditService.auditAgentDeleteResponseEvent(agentDeleteResponse))
+        auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, false, e.upstreamResponseCode, Some(e.message))))
         new Status(e.upstreamResponseCode)(s"${e.message}")
       }
       case _ => {
-        val agentDeleteResponse = AgentDeleteResponse(arn, tDate, false, 500, Some("Internal service error"))
-        auditService.audit(auditService.auditAgentDeleteResponseEvent(agentDeleteResponse))
+        auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, false, 500, Some("Internal service error"))))
         new Status(500)("Internal service error")
       }
     }

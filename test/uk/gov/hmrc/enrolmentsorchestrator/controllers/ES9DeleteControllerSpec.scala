@@ -50,13 +50,14 @@ class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with ScalaFutur
 
   val testARN = "AARN123"
   val testTerminationDate: Long = DateTime.now.toInstant.getMillis
+  val testAgentDeleteRequest = AgentDeleteRequest(testARN, testTerminationDate)
+
 
   "DELETE /enrolments-orchestrator/agents/:ARN?terminationDate=Option[Long] ?= None" should {
 
     "return 204, Request received and the attempt at deletion will be processed" in {
 
       val testHttpResponse = HttpResponse(204, responseString = Some("done"))
-      val testAgentDeleteRequest = AgentDeleteRequest(testARN, testTerminationDate)
       val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, true, 204, None)
       val extendedDataEventRequest = auditService.auditDeleteRequestEvent(testAgentDeleteRequest)
       val extendedDataEventResponse = auditService.auditAgentDeleteResponseEvent(testAgentDeleteResponse)
@@ -75,21 +76,35 @@ class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with ScalaFutur
     "return 500 if down stream services return 500" in {
 
       val testHttpResponse = HttpResponse(500, responseString = Some("error"))
+      val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, false, 500, Some("error"))
+      val extendedDataEventRequest = auditService.auditDeleteRequestEvent(testAgentDeleteRequest)
+      val extendedDataEventResponse = auditService.auditAgentDeleteResponseEvent(testAgentDeleteResponse)
 
       when(mockEnrolmentsStoreService.terminationByEnrolmentKey(any())(any(), any())).thenReturn(Future.successful(testHttpResponse))
+      when(mockAuditService.auditDeleteRequestEvent(eqTo(testAgentDeleteRequest))).thenReturn(extendedDataEventRequest)
+      when(mockAuditService.auditAgentDeleteResponseEvent(eqTo(testAgentDeleteResponse))).thenReturn(extendedDataEventResponse)
 
       val result = controller.es9Delete(testARN, Some(testTerminationDate))(fakeRequest)
 
       status(result) shouldBe INTERNAL_SERVER_ERROR
+      verify(mockAuditService, times(1)).auditDeleteRequestEvent(eqTo(testAgentDeleteRequest))
+      verify(mockAuditService, times(1)).auditAgentDeleteResponseEvent(eqTo(testAgentDeleteResponse))
     }
 
     "return 500 if there are anything wrong with the service" in {
+      val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, false, 500, Some("Internal service error"))
+      val extendedDataEventRequest = auditService.auditDeleteRequestEvent(testAgentDeleteRequest)
+      val extendedDataEventResponse = auditService.auditAgentDeleteResponseEvent(testAgentDeleteResponse)
 
       when(mockEnrolmentsStoreService.terminationByEnrolmentKey(any())(any(), any())).thenReturn(Future.failed(new RuntimeException))
+      when(mockAuditService.auditDeleteRequestEvent(eqTo(testAgentDeleteRequest))).thenReturn(extendedDataEventRequest)
+      when(mockAuditService.auditAgentDeleteResponseEvent(eqTo(testAgentDeleteResponse))).thenReturn(extendedDataEventResponse)
 
       val result = controller.es9Delete(testARN, Some(testTerminationDate))(fakeRequest)
 
       status(result) shouldBe INTERNAL_SERVER_ERROR
+      verify(mockAuditService, times(1)).auditDeleteRequestEvent(eqTo(testAgentDeleteRequest))
+      verify(mockAuditService, times(1)).auditAgentDeleteResponseEvent(eqTo(testAgentDeleteResponse))
     }
 
   }
