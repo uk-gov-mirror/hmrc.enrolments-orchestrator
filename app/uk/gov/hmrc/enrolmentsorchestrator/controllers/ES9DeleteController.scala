@@ -31,7 +31,8 @@ import scala.concurrent.ExecutionContext
 class ES9DeleteController @Inject()(cc: ControllerComponents, enrolmentsStoreService: EnrolmentsStoreService, val auditConnector: AuditConnector, auditService: AuditService)
                                    (implicit val executionContext: ExecutionContext) extends BackendController(cc) {
 
-
+  val success = true
+  val failure = false
   def es9Delete(arn: String, terminationDate: Option[Long]): Action[AnyContent] = Action.async { implicit request =>
 
     val tDate: Long = terminationDate.getOrElse(DateTime.now.getMillis)
@@ -42,18 +43,18 @@ class ES9DeleteController @Inject()(cc: ControllerComponents, enrolmentsStoreSer
 
     enrolmentsStoreService.terminationByEnrolmentKey(enrolmentKey).map { res =>
       {
-        if (res.status == 204) auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, true, res.status, None)))
-        else auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, false, res.status, Some(res.body))))
+        if (res.status == 204) auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, success, res.status, None)))
+        else auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate,  failure, res.status, Some(res.body))))
 
         new Status(res.status)(res.body)
       }
     }.recover {
       case e: Upstream4xxResponse => {
-        auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, false, e.upstreamResponseCode, Some(e.message))))
+        auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, failure, e.upstreamResponseCode, Some(e.message))))
         new Status(e.upstreamResponseCode)(s"${e.message}")
       }
       case _ => {
-        auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, false, 500, Some("Internal service error"))))
+        auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, failure, 500, Some("Internal service error"))))
         new Status(500)("Internal service error")
       }
     }

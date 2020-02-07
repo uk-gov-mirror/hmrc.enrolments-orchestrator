@@ -16,15 +16,24 @@
 
 import org.scalatest.{Matchers, WordSpec}
 import org.scalatestplus.mockito.MockitoSugar
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.enrolmentsorchestrator.models._
 import uk.gov.hmrc.enrolmentsorchestrator.services.AuditService
+import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
 class AuditServiceSpec extends WordSpec with Matchers with MockitoSugar {
   val AUDIT_SOURCE = "enrolments-orchestrator"
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
   val auditService = new AuditService(mockAuditConnector)
+  val success = true
+  val failure = false
+
+  def auditEventAssert(auditEvent: ExtendedDataEvent, auditType: String, agentDeleteResponseJson: JsValue): Unit ={
+    auditEvent.auditSource shouldBe AUDIT_SOURCE
+    auditEvent.auditType shouldBe auditType
+    auditEvent.detail shouldBe agentDeleteResponseJson
+  }
 
   "The AuditHelper" should {
     "create an AgentDeleteRequest when a request is received by the service" in {
@@ -33,33 +42,28 @@ class AuditServiceSpec extends WordSpec with Matchers with MockitoSugar {
       val agentDeleteResponseJson = Json toJson testAgentDeleteRequest
       val auditEventRequest = auditService.auditDeleteRequestEvent(testAgentDeleteRequest)
 
-      auditEventRequest.auditSource shouldBe AUDIT_SOURCE
-      auditEventRequest.auditType shouldBe auditType
-      auditEventRequest.detail shouldBe agentDeleteResponseJson
+      auditEventAssert(auditEventRequest, auditType, agentDeleteResponseJson)
 
     }
 
     "create an AgentDeleteResponse when a failed response is received" in {
       val auditType: String = "AgentDeleteResponse"
-      val testAgentDeleteResponse: AgentDeleteResponse = AgentDeleteResponse("XXXX1234567", 15797056635L, false: Boolean, 500, Some("Internal Server Error"))
+      val testAgentDeleteResponse: AgentDeleteResponse = AgentDeleteResponse("XXXX1234567", 15797056635L, failure, 500, Some("Internal Server Error"))
       val agentDeleteResponseJson = Json toJson testAgentDeleteResponse
       val auditEventResponse = auditService.auditAgentDeleteResponseEvent(testAgentDeleteResponse)
 
-      auditEventResponse.auditSource shouldBe AUDIT_SOURCE
-      auditEventResponse.auditType shouldBe auditType
-      auditEventResponse.detail shouldBe agentDeleteResponseJson
+      auditEventAssert(auditEventResponse, auditType, agentDeleteResponseJson)
 
     }
 
     "create an AgentDeleteResponse when a successful response is received" in {
       val auditType: String = "AgentDeleteResponse"
-      val testAgentDeleteResponse: AgentDeleteResponse = AgentDeleteResponse("XXXX1234567", 15797056635L, true: Boolean, 200, None)
+      val testAgentDeleteResponse: AgentDeleteResponse = AgentDeleteResponse("XXXX1234567", 15797056635L, success, 200, None)
       val agentDeleteResponseJson = Json toJson testAgentDeleteResponse
       val auditEventResponse = auditService.auditAgentDeleteResponseEvent(testAgentDeleteResponse)
 
-      auditEventResponse.auditSource shouldBe AUDIT_SOURCE
-      auditEventResponse.auditType shouldBe auditType
-      auditEventResponse.detail shouldBe agentDeleteResponseJson
+      auditEventAssert(auditEventResponse, auditType, agentDeleteResponseJson)
+
     }
   }
 }

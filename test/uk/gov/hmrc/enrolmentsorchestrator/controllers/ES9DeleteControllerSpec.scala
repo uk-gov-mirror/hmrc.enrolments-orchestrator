@@ -41,12 +41,13 @@ class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with ScalaFutur
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
   val mockAuditService: AuditService = mock[AuditService]
   val auditService: AuditService = new AuditService(mockAuditConnector)
+  val success = true
+  val failure = false
   override def afterEach = reset(mockAuditService)
 
   private val fakeRequest = FakeRequest("DELETE", "/")
 
   private val controller = new ES9DeleteController(Helpers.stubControllerComponents(), mockEnrolmentsStoreService, mockAuditConnector, mockAuditService)
-
 
   val testARN = "AARN123"
   val testTerminationDate: Long = DateTime.now.toInstant.getMillis
@@ -58,7 +59,7 @@ class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with ScalaFutur
     "return 204, Request received and the attempt at deletion will be processed" in {
 
       val testHttpResponse = HttpResponse(204, responseString = Some("done"))
-      val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, true, 204, None)
+      val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, success, 204, None)
       val extendedDataEventRequest = auditService.auditDeleteRequestEvent(testAgentDeleteRequest)
       val extendedDataEventResponse = auditService.auditAgentDeleteResponseEvent(testAgentDeleteResponse)
 
@@ -76,7 +77,7 @@ class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with ScalaFutur
     "return 500 if down stream services return 500" in {
 
       val testHttpResponse = HttpResponse(500, responseString = Some("error"))
-      val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, false, 500, Some("error"))
+      val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, failure, 500, Some("error"))
       val extendedDataEventRequest = auditService.auditDeleteRequestEvent(testAgentDeleteRequest)
       val extendedDataEventResponse = auditService.auditAgentDeleteResponseEvent(testAgentDeleteResponse)
 
@@ -92,7 +93,7 @@ class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with ScalaFutur
     }
 
     "return 500 if there are anything wrong with the service" in {
-      val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, false, 500, Some("Internal service error"))
+      val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, failure, 500, Some("Internal service error"))
       val extendedDataEventRequest = auditService.auditDeleteRequestEvent(testAgentDeleteRequest)
       val extendedDataEventResponse = auditService.auditAgentDeleteResponseEvent(testAgentDeleteResponse)
 
