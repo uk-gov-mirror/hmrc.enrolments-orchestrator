@@ -21,8 +21,6 @@ import uk.gov.hmrc.enrolmentsorchestrator.models._
 
 class AuditModelsSpec extends WordSpec with Matchers
 {
-  val success: Boolean = true
-  val failure: Boolean = false
   "The AuditModels" should {
     "match the AgentDeleteRequest scala object" in {
       val agentDeleteRequest = AgentDeleteRequest("XXXX1234567", 15797056635L)
@@ -31,15 +29,24 @@ class AuditModelsSpec extends WordSpec with Matchers
       agentDeleteRequestJson \ "ARN" shouldBe JsDefined(JsString("XXXX1234567"))
       agentDeleteRequestJson \ "terminationDate" shouldBe JsDefined(JsNumber(15797056635L))
     }
-    "match the AgentDeleteResponse scala object" in {
-      val agentDeleteResponse = AgentDeleteResponse("XXXX1234567", 15797056635L, failure, 500, Some("Internal Server Error"))
+    "match the unsuccessful AgentDeleteResponse scala object" in {
+      val agentDeleteResponse = AgentDeleteResponse("XXXX1234567", 15797056635L, success = false, 500, Some("Internal Server Error"))
       val agentDeleteResponseJson = Json toJson agentDeleteResponse
 
       agentDeleteResponseJson \ "ARN" shouldBe JsDefined(JsString("XXXX1234567"))
       agentDeleteResponseJson \ "terminationDate" shouldBe JsDefined(json.JsNumber(15797056635L))
-      agentDeleteResponseJson \ "success" shouldBe JsDefined(json.JsBoolean(failure))
+      agentDeleteResponseJson \ "success" shouldBe JsDefined(json.JsBoolean(false))
       agentDeleteResponseJson \ "ResponseCode" shouldBe JsDefined(json.JsNumber(500))
       agentDeleteResponseJson \ "failureReason" shouldBe JsDefined(json.JsString("Internal Server Error"))
+    }
+    "match the successful AgentDeleteResponse scala object" in {
+      val agentDeleteResponse = AgentDeleteResponse("XXXX1234567", 15797056635L, success = true, 200, None)
+      val agentDeleteResponseJson = Json toJson agentDeleteResponse
+
+      agentDeleteResponseJson \ "ARN" shouldBe JsDefined(JsString("XXXX1234567"))
+      agentDeleteResponseJson \ "terminationDate" shouldBe JsDefined(json.JsNumber(15797056635L))
+      agentDeleteResponseJson \ "success" shouldBe JsDefined(json.JsBoolean(true))
+      agentDeleteResponseJson \ "ResponseCode" shouldBe JsDefined(json.JsNumber(200))
     }
   }
 }

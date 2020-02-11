@@ -26,8 +26,6 @@ class AuditServiceSpec extends WordSpec with Matchers with MockitoSugar {
   val AUDIT_SOURCE = "enrolments-orchestrator"
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
   val auditService = new AuditService(mockAuditConnector)
-  val success = true
-  val failure = false
 
   def auditEventAssert(auditEvent: ExtendedDataEvent, auditType: String, agentDeleteResponseJson: JsValue): Unit ={
     auditEvent.auditSource shouldBe AUDIT_SOURCE
@@ -48,7 +46,7 @@ class AuditServiceSpec extends WordSpec with Matchers with MockitoSugar {
 
     "create an AgentDeleteResponse when a failed response is received" in {
       val auditType: String = "AgentDeleteResponse"
-      val testAgentDeleteResponse: AgentDeleteResponse = AgentDeleteResponse("XXXX1234567", 15797056635L, failure, 500, Some("Internal Server Error"))
+      val testAgentDeleteResponse: AgentDeleteResponse = AgentDeleteResponse("XXXX1234567", 15797056635L, success = false, 500, Some("Internal Server Error"))
       val agentDeleteResponseJson = Json toJson testAgentDeleteResponse
       val auditEventResponse = auditService.auditAgentDeleteResponseEvent(testAgentDeleteResponse)
 
@@ -58,7 +56,7 @@ class AuditServiceSpec extends WordSpec with Matchers with MockitoSugar {
 
     "create an AgentDeleteResponse when a successful response is received" in {
       val auditType: String = "AgentDeleteResponse"
-      val testAgentDeleteResponse: AgentDeleteResponse = AgentDeleteResponse("XXXX1234567", 15797056635L, success, 200, None)
+      val testAgentDeleteResponse: AgentDeleteResponse = AgentDeleteResponse("XXXX1234567", 15797056635L, success = false, 200, None)
       val agentDeleteResponseJson = Json toJson testAgentDeleteResponse
       val auditEventResponse = auditService.auditAgentDeleteResponseEvent(testAgentDeleteResponse)
 

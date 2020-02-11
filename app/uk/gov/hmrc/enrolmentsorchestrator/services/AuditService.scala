@@ -15,7 +15,7 @@
  */
 
 package uk.gov.hmrc.enrolmentsorchestrator.services
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.json.Json
 import uk.gov.hmrc.enrolmentsorchestrator.models.{AgentDeleteRequest, AgentDeleteResponse}
@@ -25,7 +25,8 @@ import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class AuditService@Inject()(auditConnector: AuditConnector){
+@Singleton()
+class AuditService @Inject()(auditConnector: AuditConnector){
   val AUDIT_SOURCE = "enrolments-orchestrator"
 
   def audit(event: ExtendedDataEvent)(implicit hc: HeaderCarrier, ec:ExecutionContext): Future[AuditResult] = {
