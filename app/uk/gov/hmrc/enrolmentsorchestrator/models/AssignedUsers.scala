@@ -14,18 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.enrolmentsorchestrator.config
+package uk.gov.hmrc.enrolmentsorchestrator.models
 
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import uk.gov.hmrc.enrolmentsorchestrator.UnitSpec
+import play.api.libs.json.{Format, Json}
 
-class AppConfigSpec extends UnitSpec with GuiceOneAppPerSuite {
+case class AssignedUsers(principalUserIds: Option[Set[String]], delegatedUserIds: Option[Set[String]]) {
+  def allUsers: Set[String] = principalUserIds.getOrElse(Set.empty) ++ delegatedUserIds.getOrElse(Set.empty)
+}
 
-  val appConfig: AppConfig = app.injector.instanceOf[AppConfig]
-
-  appConfig.auditingEnabled shouldBe true
-  appConfig.graphiteHost shouldBe "graphite"
-  appConfig.authBaseUrl shouldBe "http://localhost:8500"
-  appConfig.enrolmentsStoreBaseUrl shouldBe "http://localhost:9595"
-
+object AssignedUsers {
+  implicit val format: Format[AssignedUsers] = Json.format[AssignedUsers]
 }

@@ -11,8 +11,7 @@ val appName = "enrolments-orchestrator"
 lazy val externalServices = List(
   ExternalService("AUTH"),
   ExternalService("AUTH_LOGIN_API"),
-  ExternalService("USER_DETAILS"),
-  ExternalService("TAX_ENROLMENTS")
+  ExternalService("USER_DETAILS")
 )
 
 coverageExcludedPackages :=

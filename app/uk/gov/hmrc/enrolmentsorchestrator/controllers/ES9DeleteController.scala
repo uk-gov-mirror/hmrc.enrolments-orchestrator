@@ -19,6 +19,7 @@ package uk.gov.hmrc.enrolmentsorchestrator.controllers
 import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
 import uk.gov.hmrc.enrolmentsorchestrator.services.EnrolmentsStoreService
 import uk.gov.hmrc.http.Upstream4xxResponse
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
@@ -26,21 +27,24 @@ import uk.gov.hmrc.play.bootstrap.controller.BackendController
 import scala.concurrent.ExecutionContext
 
 @Singleton()
-class ES9DeleteController @Inject()(cc: ControllerComponents, enrolmentsStoreService: EnrolmentsStoreService)
-                                   (implicit executionContext: ExecutionContext) extends BackendController(cc) {
+class ES9DeleteController @Inject()(cc: ControllerComponents, enrolmentsStoreService: EnrolmentsStoreService, val authConnector: AuthConnector)
+                                   (implicit executionContext: ExecutionContext) extends BackendController(cc) with AuthorisedFunctions {
 
   def es9Delete(arn: String, terminationDate: Option[Long]): Action[AnyContent] = Action.async { implicit request =>
 
-    //todo: the tDate is for Audit events to use
-    val tDate: Long = terminationDate.getOrElse(DateTime.now.getMillis)
-    val enrolmentKey = s"HMRC-AS-AGENT~ARN~$arn"
+    authorised() {
+      //todo: the tDate is for Audit events to use
+      val tDate: Long = terminationDate.getOrElse(DateTime.now.getMillis)
+      val enrolmentKey = s"HMRC-AS-AGENT~ARN~$arn"
 
-    enrolmentsStoreService.terminationByEnrolmentKey(enrolmentKey).map { res =>
-      new Status(res.status)(res.body)
-    }.recover {
-      case e: Upstream4xxResponse => new Status(e.upstreamResponseCode)(s"${e.message}")
-      case _ => new Status(500)("Internal service error")
+      enrolmentsStoreService.terminationByEnrolmentKey(enrolmentKey).map { res =>
+        new Status(res.status)(res.body)
+      }.recover {
+        case e: Upstream4xxResponse => new Status(e.upstreamResponseCode)(s"${e.message}")
+        case _ => new Status(500)("Internal service error")
+      }
     }
+
   }
 
 }

@@ -18,10 +18,10 @@ package uk.gov.hmrc.enrolmentsorchestrator
 
 import java.nio.charset.Charset
 
-import akka.stream.Materializer
+import akka.actor.ActorSystem
+import akka.stream.{ActorMaterializer, Materializer}
 import akka.util.ByteString
 import org.scalatest.{Matchers, OptionValues, WordSpecLike}
-import play.api.http.HeaderNames
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Result
 
@@ -32,7 +32,10 @@ import scala.concurrent.{Await, Future}
 
 trait UnitSpec extends WordSpecLike with Matchers with OptionValues {
 
-  implicit val defaultTimeout: FiniteDuration = 5 seconds
+  implicit val system: ActorSystem = ActorSystem("Sys")
+  implicit val materializer: ActorMaterializer = ActorMaterializer()
+
+  implicit val defaultTimeout: FiniteDuration = 5.seconds
 
   implicit def extractAwait[A](future: Future[A]): A = await[A](future)
 
@@ -61,8 +64,5 @@ trait UnitSpec extends WordSpecLike with Matchers with OptionValues {
   def bodyOf(resultF: Future[Result])(implicit mat: Materializer): Future[String] = {
     resultF.map(bodyOf)
   }
-
-  def redirectLocation(result: Result): Option[String] = result.header.headers.get(HeaderNames.LOCATION)
-  def redirectLocation(result: Future[Result]): Option[String] = result.header.headers.get(HeaderNames.LOCATION)
 
 }

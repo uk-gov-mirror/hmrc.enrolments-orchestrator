@@ -16,49 +16,51 @@
 
 package uk.gov.hmrc.enrolmentsorchestrator.services
 
-import org.mockito.ArgumentMatchers.{any, contains}
-import org.mockito.Mockito.when
+
+import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatestplus.mockito.MockitoSugar
 import play.api.Logger
 import play.api.libs.json.Json
-import uk.gov.hmrc.enrolmentsorchestrator.connectors.{EnrolmentsStoreConnector, TaxEnrolmentConnector}
+import uk.gov.hmrc.enrolmentsorchestrator.connectors.EnrolmentsStoreConnector
 import uk.gov.hmrc.enrolmentsorchestrator.models.PrincipalGroupIds
 import uk.gov.hmrc.enrolmentsorchestrator.{LogCapturing, UnitSpec}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class EnrolmentsStoreServiceSpec extends UnitSpec with LogCapturing with MockitoSugar with ScalaFutures {
+class EnrolmentsStoreServiceSpec extends UnitSpec with LogCapturing with MockFactory with ScalaFutures {
 
   implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
   val mockEnrolmentsStoreConnector: EnrolmentsStoreConnector = mock[EnrolmentsStoreConnector]
-  val mockTaxEnrolmentConnector: TaxEnrolmentConnector = mock[TaxEnrolmentConnector]
+  val mockAuthService: AuthService = mock[AuthService]
 
-  val enrolmentsStoreService = new EnrolmentsStoreService(mockEnrolmentsStoreConnector, mockTaxEnrolmentConnector)
+  val enrolmentsStoreService = new EnrolmentsStoreService(mockEnrolmentsStoreConnector, mockAuthService)
 
   val enrolmentKey = "enrolmentKey"
   val groupId = "groupId"
 
   "EnrolmentsStoreService" should {
 
-    "return 204 HttpResponse if EnrolmentsStoreConnector returns 200 and TaxEnrolmentConnector returns 204" in {
+    "return 204 HttpResponse if es1 returns 200 and AuthConnector returns 204" in {
 
       withCaptureOfLoggingFrom(Logger) { logEvents =>
 
         val enrolmentsStoreHttpResponseBody = Json.toJson(PrincipalGroupIds(List(groupId)))
 
         val enrolmentsStoreHttpResponse = HttpResponse(200, Some(enrolmentsStoreHttpResponseBody))
-        val taxEnrolmentHttpResponse = HttpResponse(204)
+        val authHttpResponse = HttpResponse(204)
 
-        when(mockEnrolmentsStoreConnector.es1GetPrincipalGroups(contains(enrolmentKey))(any(), any()))
-          .thenReturn(Future.successful(enrolmentsStoreHttpResponse))
-        when(mockTaxEnrolmentConnector.es9DeallocateGroup(contains(groupId), contains(enrolmentKey))(any(), any()))
-          .thenReturn(Future.successful(taxEnrolmentHttpResponse))
+        (mockEnrolmentsStoreConnector.es1GetPrincipalGroups(_: String)(_: HeaderCarrier,_:ExecutionContext))
+          .expects(enrolmentKey, *, *)
+          .returning(Future.successful(enrolmentsStoreHttpResponse))
 
-        await(enrolmentsStoreService.terminationByEnrolmentKey(enrolmentKey)) shouldBe taxEnrolmentHttpResponse
+        (mockAuthService.updatingAuthEnrolments(_: String)(_: Future[HttpResponse])(_: HeaderCarrier,_:ExecutionContext))
+          .expects(enrolmentKey, *, *, *)
+          .returning(Future.successful(authHttpResponse))
+
+        await(enrolmentsStoreService.terminationByEnrolmentKey(enrolmentKey)) shouldBe authHttpResponse
 
         logEvents.length shouldBe 0
 
@@ -66,20 +68,21 @@ class EnrolmentsStoreServiceSpec extends UnitSpec with LogCapturing with Mockito
 
     }
 
-    "return HttpResponse from EnrolmentsStoreConnector if EnrolmentsStoreConnector returns not ok(200) and log the response" in {
+    "return HttpResponse from es1 if es1 returns not ok(200), also log the response" in {
       withCaptureOfLoggingFrom(Logger) { logEvents =>
 
         val testHttpResponse = HttpResponse(204)
         val enrolmentKey = "enrolmentKey"
 
-        when(mockEnrolmentsStoreConnector.es1GetPrincipalGroups(contains(enrolmentKey))(any(), any()))
-          .thenReturn(Future.successful(testHttpResponse))
+        (mockEnrolmentsStoreConnector.es1GetPrincipalGroups(_: String)(_: HeaderCarrier,_:ExecutionContext))
+          .expects(enrolmentKey, *, *)
+          .returning(Future.successful(testHttpResponse))
 
         await(enrolmentsStoreService.terminationByEnrolmentKey(enrolmentKey)) shouldBe testHttpResponse
 
         logEvents.length shouldBe 1
         logEvents.collectFirst { case logEvent =>
-          logEvent.getMessage shouldBe "For enrolmentKey: enrolmentKey 200 was not returned by Enrolments-Store, " +
+          logEvent.getMessage shouldBe "For enrolmentKey: enrolmentKey 200 was not returned by Enrolments-Store es1, " +
             "ie no groupId found there are no allocated groups (the enrolment itself may or may not actually exist) " +
             "or there is nothing to return, the response is 204 with body null"
         }
@@ -87,25 +90,27 @@ class EnrolmentsStoreServiceSpec extends UnitSpec with LogCapturing with Mockito
       }
     }
 
-    "return HttpResponse from TaxEnrolmentConnector if EnrolmentsStoreConnector returns 200 but TaxEnrolmentConnector not returns 204 and log the response" in {
+    "return HttpResponse from AuthConnector if EnrolmentsStoreConnector returns 200 but AuthConnector not returns 204, also log the response" in {
       withCaptureOfLoggingFrom(Logger) { logEvents =>
 
         val enrolmentsStoreHttpResponseBody = Json.toJson(PrincipalGroupIds(List(groupId)))
 
         val enrolmentsStoreHttpResponse = HttpResponse(200, Some(enrolmentsStoreHttpResponseBody))
-        val taxEnrolmentHttpResponse = HttpResponse(400)
+        val authHttpResponse = HttpResponse(400)
 
-        when(mockEnrolmentsStoreConnector.es1GetPrincipalGroups(contains(enrolmentKey))(any(), any()))
-          .thenReturn(Future.successful(enrolmentsStoreHttpResponse))
-        when(mockTaxEnrolmentConnector.es9DeallocateGroup(contains(groupId), contains(enrolmentKey))(any(), any()))
-          .thenReturn(Future.successful(taxEnrolmentHttpResponse))
+        (mockEnrolmentsStoreConnector.es1GetPrincipalGroups(_: String)(_: HeaderCarrier,_:ExecutionContext))
+          .expects(enrolmentKey, *, *)
+          .returning(Future.successful(enrolmentsStoreHttpResponse))
 
-        await(enrolmentsStoreService.terminationByEnrolmentKey(enrolmentKey)) shouldBe taxEnrolmentHttpResponse
+        (mockAuthService.updatingAuthEnrolments(_: String)(_: Future[HttpResponse])(_: HeaderCarrier,_:ExecutionContext))
+          .expects(enrolmentKey, *, *, *)
+          .returning(Future.successful(authHttpResponse))
+
+        await(enrolmentsStoreService.terminationByEnrolmentKey(enrolmentKey)) shouldBe authHttpResponse
 
         logEvents.length shouldBe 1
         logEvents.collectFirst { case logEvent =>
-          logEvent.getMessage shouldBe s"For enrolmentKey: $enrolmentKey and groupId: $groupId 204 was not returned by Tax-Enrolments, " +
-            s"the response is 400 with body null"
+          logEvent.getMessage shouldBe s"For enrolmentKey: $enrolmentKey and groupId: $groupId 204 was not returned by Tax-Enrolments, the response is 400 with body null"
         }
 
       }

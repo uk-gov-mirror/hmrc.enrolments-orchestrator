@@ -17,6 +17,9 @@
 package uk.gov.hmrc.enrolmentsorchestrator.connectors
 
 import javax.inject.{Inject, Singleton}
+import play.api.Logger
+import play.api.libs.json.{Json, Writes}
+import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier, Enrolments}
 import uk.gov.hmrc.enrolmentsorchestrator.config.AppConfig
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
@@ -24,14 +27,20 @@ import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton()
-class TaxEnrolmentConnector @Inject()(httpClient: HttpClient, appConfig: AppConfig) {
+class AuthConnector @Inject()(httpClient: HttpClient, appConfig: AppConfig) {
 
-  lazy val taxEnrolmentsBaseUrl: String = appConfig.taxEnrolmentsBaseUrl
+  lazy val authBaseUrl: String = appConfig.authBaseUrl
 
-  //Use tax-enrolments service to call es9 to deallocate the group and clear the auth session
-  def es9DeallocateGroup(groupId: String, enrolmentKey: String)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[HttpResponse] = {
-    val url = s"$taxEnrolmentsBaseUrl/tax-enrolments/groups/$groupId/enrolments/$enrolmentKey"
-    httpClient.DELETE(url)
+  def updateEnrolments(enrolments: Enrolments, credId: String)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[HttpResponse] = {
+
+    implicit val enrolmentIdentifierWrites: Writes[EnrolmentIdentifier] = Json.writes[EnrolmentIdentifier]
+    implicit val enrolmentWrites: Writes[Enrolment] = Json.writes[Enrolment]
+
+    val requestBody = Json.obj("individualEnrolments" -> Json.obj(), "allEnrolments" -> Json.toJson(enrolments.enrolments))
+
+    Logger.debug(s"Updating Auth with these Enrolments: $requestBody")
+
+    httpClient.POST(s"$authBaseUrl/auth/gg/$credId/enrolments", requestBody)
   }
 
 }

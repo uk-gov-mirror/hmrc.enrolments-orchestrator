@@ -16,38 +16,43 @@
 
 package uk.gov.hmrc.enrolmentsorchestrator.connectors
 
-import org.mockito.ArgumentMatchers.{any, contains}
-import org.mockito.Mockito.when
+import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatestplus.mockito.MockitoSugar
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.libs.json.{JsValue, Writes}
+import uk.gov.hmrc.auth.core.{Enrolment, Enrolments}
 import uk.gov.hmrc.enrolmentsorchestrator.UnitSpec
 import uk.gov.hmrc.enrolmentsorchestrator.config.AppConfig
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class TaxEnrolmentConnectorSpec extends UnitSpec with MockitoSugar with ScalaFutures {
+class AuthConnectorSpec extends UnitSpec with MockFactory with ScalaFutures with GuiceOneAppPerSuite {
 
   val mockHttpClient: HttpClient = mock[HttpClient]
-  val mockAppConfig: AppConfig = mock[AppConfig]
+  val appConfig: AppConfig = app.injector.instanceOf[AppConfig]
 
   implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
-  val connector = new TaxEnrolmentConnector(mockHttpClient, mockAppConfig)
+  val connector = new AuthConnector(mockHttpClient, appConfig)
 
-  "EnrolmentsStoreConnector" should {
-    "connect to EnrolmentsStore and return HttpResponse" in {
+  "AuthConnector" should {
+
+    "connect Auth to update cred's enrolments and return the update response" in {
 
       val testHttpResponse = HttpResponse(200)
-      val enrolmentKey = "enrolmentKey"
-      val groupId = "groupId"
+      val credId = "credId"
 
-      when(mockHttpClient.DELETE[HttpResponse](contains(groupId), any())(any(), any(), any())).thenReturn(Future.successful(testHttpResponse))
+      (mockHttpClient.POST[JsValue, HttpResponse](_: String, _: JsValue, _: Seq[(String, String)])(_: Writes[JsValue], _: HttpReads[HttpResponse], _: HeaderCarrier, _:ExecutionContext))
+        .expects(*, *, *, *, *, *, *)
+        .returning(Future.successful(testHttpResponse))
 
-      connector.es9DeallocateGroup(groupId, enrolmentKey).futureValue shouldBe testHttpResponse
+      connector.updateEnrolments(Enrolments(Set[Enrolment]()), credId).futureValue shouldBe testHttpResponse
 
     }
+
   }
+
 }

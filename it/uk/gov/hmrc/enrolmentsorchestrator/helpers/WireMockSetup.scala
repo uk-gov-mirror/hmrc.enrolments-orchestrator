@@ -4,7 +4,7 @@ import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
-import com.github.tomakehurst.wiremock.stubbing.StubMapping
+import com.github.tomakehurst.wiremock.stubbing.{Scenario, StubMapping}
 
 trait WireMockSetup {
 
@@ -24,12 +24,35 @@ trait WireMockSetup {
     )
 
     stubFor(
-      get(urlEqualTo("/enrolment-store-proxy/enrolment-store/enrolments/HMRC-AS-AGENT~ARN~AARN123/users"))
-        .willReturn(aResponse().withStatus(204))
+      get(urlEqualTo("/enrolment-store/enrolments/HMRC-AS-AGENT~ARN~AARN123/users"))
+        .inScenario("Default")
+        .whenScenarioStateIs(Scenario.STARTED)
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withBody( """{"principalUserIds": ["anyCredId", "2", "3"], "delegatedUserIds": ["a", "b"]}""" )
+        )
+        .willSetStateTo("After")
     )
 
     stubFor(
-      delete(urlEqualTo("/enrolment-store-proxy/enrolment-store/groups/90ccf333-65d2-4bf2-a008-01dfca702161/enrolments/HMRC-AS-AGENT~ARN~AARN123"))
+      get(urlEqualTo("/enrolment-store/enrolments/HMRC-AS-AGENT~ARN~AARN123/users"))
+        .inScenario("Default")
+        .whenScenarioStateIs("After")
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withBody( """{"principalUserIds": ["2","3"],"delegatedUserIds": ["a","b"]}""" )
+        )
+    )
+
+    stubFor(
+      get(urlEqualTo("/enrolment-store/users/anyCredId/enrolments"))
+        .willReturn(aResponse().withStatus(204).withBody( """{}""" ))
+    )
+
+    stubFor(
+      delete(urlEqualTo("/enrolment-store/groups/90ccf333-65d2-4bf2-a008-01dfca702161/enrolments/HMRC-AS-AGENT~ARN~AARN123"))
         .willReturn(aResponse().withStatus(204))
     )
   }

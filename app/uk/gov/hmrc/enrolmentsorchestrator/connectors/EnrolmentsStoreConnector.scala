@@ -17,7 +17,10 @@
 package uk.gov.hmrc.enrolmentsorchestrator.connectors
 
 import javax.inject.{Inject, Singleton}
+import play.api.libs.json._
+import uk.gov.hmrc.auth.core.Enrolments
 import uk.gov.hmrc.enrolmentsorchestrator.config.AppConfig
+import uk.gov.hmrc.enrolmentsorchestrator.models.AssignedUsers
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
@@ -28,10 +31,44 @@ class EnrolmentsStoreConnector @Inject()(httpClient: HttpClient, appConfig: AppC
 
   lazy val enrolmentsStoreBaseUrl: String = appConfig.enrolmentsStoreBaseUrl
 
-  //Query Groups who have an allocated Enrolment
+  //ES1 Query Groups who have an allocated Enrolment
   def es1GetPrincipalGroups(enrolmentKey: String)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[HttpResponse] = {
     val url = s"$enrolmentsStoreBaseUrl/enrolment-store/enrolments/$enrolmentKey/groups?type=principal"
     httpClient.GET(url)
+  }
+
+  //ES0 Query Users who have an assigned Enrolment
+  def es0GetAssignedUsers(enrolmentKey: String)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[AssignedUsers]] = {
+    val url = s"$enrolmentsStoreBaseUrl/enrolment-store/enrolments/$enrolmentKey/users"
+    httpClient.GET[Option[AssignedUsers]](url)
+  }
+
+  //ES2 Query Enrolments assigned to a User/credId
+  def es2GetEnrolments(credId: String)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Enrolments] = {
+
+    implicit val enrolmentsReads: Reads[Enrolments] = Json.reads[Enrolments]
+
+    val url = s"$enrolmentsStoreBaseUrl/enrolment-store/users/$credId/enrolments"
+    val response: Future[HttpResponse] = httpClient.GET(url)
+
+    response.map { r =>
+      if (r.status == 204) {
+        Enrolments(Set.empty)
+      } else if (r.status == 200) {
+        r.json.validate[Enrolments] match {
+          case enr: JsSuccess[Enrolments] => enr.value
+          case _ => Enrolments(Set.empty)
+        }
+      } else {
+        Enrolments(Set.empty)
+      }
+    }
+  }
+
+  //ES9 De-allocate an Enrolment from a Group
+  def es9DeEnrol(groupId: String, enrolmentKey: String)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[HttpResponse] = {
+    val url = s"$enrolmentsStoreBaseUrl/enrolment-store/groups/$groupId/enrolments/$enrolmentKey"
+    httpClient.DELETE(url)
   }
 
 }
