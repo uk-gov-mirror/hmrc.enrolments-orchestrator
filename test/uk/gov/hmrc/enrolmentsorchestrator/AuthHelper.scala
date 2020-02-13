@@ -21,9 +21,9 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.libs.json.Writes
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.enrolmentsorchestrator.config.AppConfig
 import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse, Upstream4xxResponse}
 import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -31,8 +31,8 @@ import scala.concurrent.{ExecutionContext, Future}
 trait AuthHelper extends MockFactory with ScalaFutures with GuiceOneAppPerSuite {
 
   val httpClient: HttpClient = mock[HttpClient]
-  val config: AppConfig = app.injector.instanceOf[AppConfig]
-  val mockAuthConnector: AuthConnector = new DefaultAuthConnector(httpClient, config.servicesConfig)
+  val config: ServicesConfig = app.injector.instanceOf[ServicesConfig]
+  val mockAuthConnector: AuthConnector = new DefaultAuthConnector(httpClient, config)
 
   def authed = {
     (httpClient.POST(_: String, _: Any, _: Seq[(String, String)])(_: Writes[Any], _: HttpReads[Any], _: HeaderCarrier,_:ExecutionContext))

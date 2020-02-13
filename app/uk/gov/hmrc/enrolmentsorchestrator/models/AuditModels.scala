@@ -15,8 +15,9 @@
  */
 
 package uk.gov.hmrc.enrolmentsorchestrator.models
-import play.api.libs.json.{JsPath, Json, OWrites}
+
 import play.api.libs.functional.syntax._
+import play.api.libs.json.{JsPath, Json, OWrites}
 
 case class AgentDeleteRequest(ARN: String, terminationDate: Long)
 

@@ -68,7 +68,7 @@ class AuthService @Inject()(enrolmentsStoreConnector: EnrolmentsStoreConnector, 
 
     val maxParallelism = 8
 
-    credIdsToUpdate.grouped(maxParallelism).foldLeft(Future.successful()) {
+    credIdsToUpdate.grouped(maxParallelism).foldLeft(Future.successful(())) {
       case (f, credIds) ⇒ f.flatMap { _ =>
         val updates: List[Future[Unit]] = credIds.map { credId =>
           updateAuthWithESEnrolments(credId).map(_ => ())
