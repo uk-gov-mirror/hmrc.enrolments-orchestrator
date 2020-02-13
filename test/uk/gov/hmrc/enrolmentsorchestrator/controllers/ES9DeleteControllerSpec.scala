@@ -17,25 +17,27 @@
 package uk.gov.hmrc.enrolmentsorchestrator.controllers
 
 import org.joda.time.DateTime
+import play.api.mvc.AnyContentAsEmpty
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.enrolmentsorchestrator.services.EnrolmentsStoreService
-import uk.gov.hmrc.enrolmentsorchestrator.{AuthHelper, UnitSpec}
+import uk.gov.hmrc.enrolmentsorchestrator.{AuditHelper, AuthHelper, UnitSpec}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, Upstream4xxResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-class ES9DeleteControllerSpec extends UnitSpec with AuthHelper {
+class ES9DeleteControllerSpec extends UnitSpec with AuthHelper with AuditHelper {
 
   val mockEnrolmentsStoreService: EnrolmentsStoreService = mock[EnrolmentsStoreService]
 
-  private val fakeRequest = FakeRequest("DELETE", "/")
-
-  private val controller = new ES9DeleteController(Helpers.stubControllerComponents(), mockEnrolmentsStoreService, mockAuthConnector)
-
-  val testARN = "AARN123"
+  val testARN: String = "AARN123"
   val testTerminationDate: Long = DateTime.now.toInstant.getMillis
+
+  val testEnrolmentKey = s"HMRC-AS-AGENT~ARN~$testARN"
+
+  val fakeRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest("DELETE", "/")
+  val controller = new ES9DeleteController(Helpers.stubControllerComponents(), mockEnrolmentsStoreService, mockAuthConnector, mockAuditService)
 
   "DELETE /enrolments-orchestrator/agents/:ARN?terminationDate=Option[Long] ?= None" should {
 
@@ -45,9 +47,13 @@ class ES9DeleteControllerSpec extends UnitSpec with AuthHelper {
 
       authed
 
+      auditRequest(testARN, testTerminationDate)
+
       (mockEnrolmentsStoreService.terminationByEnrolmentKey(_: String)(_: HeaderCarrier,_:ExecutionContext))
-        .expects(*, *, *)
+        .expects(testEnrolmentKey, *, *)
         .returning(Future.successful(testHttpResponse))
+
+      auditResponse(testARN, testTerminationDate)
 
       val result = controller.es9Delete(testARN, Some(testTerminationDate))(fakeRequest)
 
@@ -69,11 +75,15 @@ class ES9DeleteControllerSpec extends UnitSpec with AuthHelper {
 
       authed
 
+      auditRequest(testARN, testTerminationDate)
+
       (mockEnrolmentsStoreService.terminationByEnrolmentKey(_: String)(_: HeaderCarrier,_:ExecutionContext))
         .expects(*, *, *)
         .returning(Future.successful(testHttpResponse))
 
-      val result = controller.es9Delete(testARN, None)(fakeRequest)
+      auditResponse(testARN, testTerminationDate, eventTypeSuccess = false, testHttpResponse.status, Some(testHttpResponse.body))
+
+      val result = controller.es9Delete(testARN, Some(testTerminationDate))(fakeRequest)
 
       status(result) shouldBe NOT_FOUND
       bodyOf(result).futureValue shouldBe "not found"
@@ -83,11 +93,15 @@ class ES9DeleteControllerSpec extends UnitSpec with AuthHelper {
 
       authed
 
+      auditRequest(testARN, testTerminationDate)
+
       (mockEnrolmentsStoreService.terminationByEnrolmentKey(_: String)(_: HeaderCarrier,_:ExecutionContext))
         .expects(*, *, *)
         .returning(Future.failed(Upstream4xxResponse("not found", 404, 404)))
 
-      val result = controller.es9Delete(testARN, None)(fakeRequest)
+      auditResponse(testARN, testTerminationDate, eventTypeSuccess = false, 404, Some("not found"))
+
+      val result = controller.es9Delete(testARN, Some(testTerminationDate))(fakeRequest)
 
       status(result) shouldBe NOT_FOUND
       bodyOf(result).futureValue shouldBe "not found"
@@ -95,13 +109,17 @@ class ES9DeleteControllerSpec extends UnitSpec with AuthHelper {
 
     "return 500 if down stream services return 500" in {
 
+      val testHttpResponse = HttpResponse(500, responseString = Some("error"))
+
       authed
 
-      val testHttpResponse = HttpResponse(500, responseString = Some("error"))
+      auditRequest(testARN, testTerminationDate)
 
       (mockEnrolmentsStoreService.terminationByEnrolmentKey(_: String)(_: HeaderCarrier,_:ExecutionContext))
         .expects(*, *, *)
         .returning(Future.successful(testHttpResponse))
+
+      auditResponse(testARN, testTerminationDate, eventTypeSuccess = false, 500, Some("error"))
 
       val result = controller.es9Delete(testARN, Some(testTerminationDate))(fakeRequest)
 
@@ -112,9 +130,13 @@ class ES9DeleteControllerSpec extends UnitSpec with AuthHelper {
 
       authed
 
+      auditRequest(testARN, testTerminationDate)
+
       (mockEnrolmentsStoreService.terminationByEnrolmentKey(_: String)(_: HeaderCarrier,_:ExecutionContext))
         .expects(*, *, *)
         .returning(Future.failed(new RuntimeException))
+
+      auditResponse(testARN, testTerminationDate, eventTypeSuccess = false, 500, Some("Internal service error"))
 
       val result = controller.es9Delete(testARN, Some(testTerminationDate))(fakeRequest)
 
