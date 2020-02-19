@@ -30,7 +30,7 @@ class EnrolmentsStoreConnector @Inject()(httpClient: HttpClient, appConfig: AppC
 
   //Query Groups who have an allocated Enrolment
   def es1GetPrincipalGroups(enrolmentKey: String)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[HttpResponse] = {
-    val url = s"$enrolmentsStoreBaseUrl/enrolment-store/enrolments/$enrolmentKey/groups?type=principal"
+    val url = s"$enrolmentsStoreBaseUrl/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/groups?type=principal"
     httpClient.GET(url)
   }
 
