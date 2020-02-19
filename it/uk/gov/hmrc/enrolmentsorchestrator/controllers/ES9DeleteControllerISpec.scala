@@ -39,7 +39,7 @@ class ES9DeleteControllerISpec extends TestSetupHelper with LogCapturing {
           withCaptureOfLoggingFrom(Logger) { logEvents =>
             await(wsClient.url(resource(s"$es9DeleteBaseUrl/$testARN")).delete()).status shouldBe 204
             logEvents.length shouldBe 2
-            logEvents.head.toString.contains("For enrolmentKey: HMRC-AS-AGENT~ARN~AARN123 200 was not returned by Enrolments-Store, " +
+            logEvents.head.toString.contains("For enrolmentKey: HMRC-AS-AGENT~AgentReferenceNumber~AARN123 200 was not returned by Enrolments-Store, " +
               "ie no groupId found there are no allocated groups (the enrolment itself may or may not actually exist) " +
               "or there is nothing to return, the response is 204 with body ") shouldBe true
           }
@@ -58,7 +58,7 @@ class ES9DeleteControllerISpec extends TestSetupHelper with LogCapturing {
           withCaptureOfLoggingFrom(Logger) { logEvents =>
             await(wsClient.url(resource(s"$es9DeleteBaseUrl/$testARN")).delete()).status shouldBe 401
             logEvents.length shouldBe 2
-            logEvents.head.toString.contains("For enrolmentKey: HMRC-AS-AGENT~ARN~AARN123 and groupId: 90ccf333-65d2-4bf2-a008-01dfca702161 " +
+            logEvents.head.toString.contains("For enrolmentKey: HMRC-AS-AGENT~AgentReferenceNumber~AARN123 and groupId: 90ccf333-65d2-4bf2-a008-01dfca702161 " +
               "204 was not returned by Tax-Enrolments, the response is 401") shouldBe true
           }
         }
