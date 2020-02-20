@@ -9,6 +9,8 @@ The enrolments-orchestrator service exposes a single API call:
 
 ### DELETE /enrolments-orchestrator/agents/:ARN?terminationDate={termination Long}
 
+ - terminationDate is optional, in milliseconds. Defaults to the current time
+
 Responds with:
 
 | Status        | Message       |
