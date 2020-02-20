@@ -50,7 +50,7 @@ class ES9DeleteControllerISpec extends TestSetupHelper with LogCapturing {
             ).status shouldBe 204
             logEvents.length shouldBe 2
             logEvents.filter(l => l.getLevel == Level.WARN) match { case logEvent =>
-              logEvent.toString().contains("For enrolmentKey: HMRC-AS-AGENT~ARN~AARN123 200 was not returned by Enrolments-Store es1, " +
+              logEvent.toString().contains("For enrolmentKey: HMRC-AS-AGENT~AgentReferenceNumber~AARN123 200 was not returned by Enrolments-Store es1, " +
                 "ie no groupId found there are no allocated groups (the enrolment itself may or may not actually exist) " +
                 "or there is nothing to return, the response is 204 with body ") shouldBe true
             }

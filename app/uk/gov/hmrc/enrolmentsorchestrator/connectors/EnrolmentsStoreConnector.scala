@@ -33,13 +33,13 @@ class EnrolmentsStoreConnector @Inject()(httpClient: HttpClient, appConfig: AppC
 
   //ES1 Query Groups who have an allocated Enrolment
   def es1GetPrincipalGroups(enrolmentKey: String)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[HttpResponse] = {
-    val url = s"$enrolmentsStoreBaseUrl/enrolment-store/enrolments/$enrolmentKey/groups?type=principal"
+    val url = s"$enrolmentsStoreBaseUrl/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/groups?type=principal"
     httpClient.GET(url)
   }
 
   //ES0 Query Users who have an assigned Enrolment
   def es0GetAssignedUsers(enrolmentKey: String)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[AssignedUsers]] = {
-    val url = s"$enrolmentsStoreBaseUrl/enrolment-store/enrolments/$enrolmentKey/users"
+    val url = s"$enrolmentsStoreBaseUrl/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/users"
     httpClient.GET[Option[AssignedUsers]](url)
   }
 
@@ -48,7 +48,7 @@ class EnrolmentsStoreConnector @Inject()(httpClient: HttpClient, appConfig: AppC
 
     implicit val enrolmentsReads: Reads[Enrolments] = Json.reads[Enrolments]
 
-    val url = s"$enrolmentsStoreBaseUrl/enrolment-store/users/$credId/enrolments"
+    val url = s"$enrolmentsStoreBaseUrl/enrolment-store-proxy/enrolment-store/users/$credId/enrolments"
     val response: Future[HttpResponse] = httpClient.GET(url)
 
     response.map { r =>
@@ -67,7 +67,7 @@ class EnrolmentsStoreConnector @Inject()(httpClient: HttpClient, appConfig: AppC
 
   //ES9 De-allocate an Enrolment from a Group
   def es9DeEnrol(groupId: String, enrolmentKey: String)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[HttpResponse] = {
-    val url = s"$enrolmentsStoreBaseUrl/enrolment-store/groups/$groupId/enrolments/$enrolmentKey"
+    val url = s"$enrolmentsStoreBaseUrl/enrolment-store-proxy/enrolment-store/groups/$groupId/enrolments/$enrolmentKey"
     httpClient.DELETE(url)
   }
 

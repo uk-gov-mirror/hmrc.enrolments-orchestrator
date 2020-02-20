@@ -34,7 +34,7 @@ class ES9DeleteControllerSpec extends UnitSpec with AuthHelper with AuditHelper 
   val testARN: String = "AARN123"
   val testTerminationDate: Long = DateTime.now.toInstant.getMillis
 
-  val testEnrolmentKey = s"HMRC-AS-AGENT~ARN~$testARN"
+  val testEnrolmentKey = s"HMRC-AS-AGENT~AgentReferenceNumber~$testARN"
 
   val fakeRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest("DELETE", "/")
   val controller = new ES9DeleteController(Helpers.stubControllerComponents(), mockEnrolmentsStoreService, mockAuthConnector, mockAuditService)

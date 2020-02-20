@@ -34,8 +34,9 @@ class ES9DeleteController @Inject()(cc: ControllerComponents, enrolmentsStoreSer
   def es9Delete(arn: String, terminationDate: Option[Long]): Action[AnyContent] = Action.async { implicit request =>
 
     authorised() {
+
       val tDate: Long = terminationDate.getOrElse(DateTime.now.getMillis)
-      val AGENT_ENROLMENT_KEY = s"HMRC-AS-AGENT~ARN~$arn"
+      val AGENT_ENROLMENT_KEY = s"HMRC-AS-AGENT~AgentReferenceNumber~$arn"
       val agentDeleteRequest = AgentDeleteRequest(arn, tDate)
 
       auditService.audit(auditService.auditDeleteRequestEvent(agentDeleteRequest))

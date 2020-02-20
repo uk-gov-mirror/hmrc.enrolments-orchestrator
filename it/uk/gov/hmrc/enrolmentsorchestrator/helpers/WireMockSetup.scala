@@ -18,13 +18,13 @@ trait WireMockSetup {
     wireMockServer.start()
 
     stubFor(
-      get(urlEqualTo("/enrolment-store/enrolments/HMRC-AS-AGENT~ARN~AARN123/groups?type=principal"))
+      get(urlEqualTo("/enrolment-store-proxy/enrolment-store/enrolments/HMRC-AS-AGENT~AgentReferenceNumber~AARN123/groups?type=principal"))
         .willReturn(aResponse().withStatus(200)
           .withBody("""{"principalGroupIds":["90ccf333-65d2-4bf2-a008-01dfca702161"]}"""))
     )
 
     stubFor(
-      get(urlEqualTo("/enrolment-store/enrolments/HMRC-AS-AGENT~ARN~AARN123/users"))
+      get(urlEqualTo("/enrolment-store-proxy/enrolment-store/enrolments/HMRC-AS-AGENT~AgentReferenceNumber~AARN123/users"))
         .inScenario("Default")
         .whenScenarioStateIs(Scenario.STARTED)
         .willReturn(
@@ -36,7 +36,7 @@ trait WireMockSetup {
     )
 
     stubFor(
-      get(urlEqualTo("/enrolment-store/enrolments/HMRC-AS-AGENT~ARN~AARN123/users"))
+      get(urlEqualTo("/enrolment-store-proxy/enrolment-store/enrolments/HMRC-AS-AGENT~AgentReferenceNumber~AARN123/users"))
         .inScenario("Default")
         .whenScenarioStateIs("After")
         .willReturn(
@@ -47,12 +47,12 @@ trait WireMockSetup {
     )
 
     stubFor(
-      get(urlEqualTo("/enrolment-store/users/anyCredId/enrolments"))
+      get(urlEqualTo("/enrolment-store-proxy/enrolment-store/users/anyCredId/enrolments"))
         .willReturn(aResponse().withStatus(204).withBody( """{}""" ))
     )
 
     stubFor(
-      delete(urlEqualTo("/enrolment-store/groups/90ccf333-65d2-4bf2-a008-01dfca702161/enrolments/HMRC-AS-AGENT~ARN~AARN123"))
+      delete(urlEqualTo("/enrolment-store-proxy/enrolment-store/groups/90ccf333-65d2-4bf2-a008-01dfca702161/enrolments/HMRC-AS-AGENT~AgentReferenceNumber~AARN123"))
         .willReturn(aResponse().withStatus(204))
     )
   }
@@ -62,7 +62,7 @@ trait WireMockSetup {
     wireMockServer.start()
 
     stubFor(
-      get(urlEqualTo("/enrolment-store/enrolments/HMRC-AS-AGENT~ARN~AARN123/groups?type=principal"))
+      get(urlEqualTo("/enrolment-store-proxy/enrolment-store/enrolments/HMRC-AS-AGENT~AgentReferenceNumber~AARN123/groups?type=principal"))
         .willReturn(aResponse().withStatus(204))
     )
   }
