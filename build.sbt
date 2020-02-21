@@ -11,6 +11,7 @@ val appName = "enrolments-orchestrator"
 lazy val externalServices = List(
   ExternalService("AUTH"),
   ExternalService("AUTH_LOGIN_API"),
+  ExternalService("DATASTREAM"),
   ExternalService("USER_DETAILS")
 )
 
