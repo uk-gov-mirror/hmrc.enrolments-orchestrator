@@ -18,36 +18,30 @@ package uk.gov.hmrc.enrolmentsorchestrator.connectors
 
 import org.mockito.ArgumentMatchers.{any, contains}
 import org.mockito.Mockito.when
-import org.scalatest.concurrent.ScalaFutures
 import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.enrolmentsorchestrator.UnitSpec
 import uk.gov.hmrc.enrolmentsorchestrator.config.AppConfig
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.HttpResponse
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class TaxEnrolmentConnectorSpec extends UnitSpec with MockitoSugar with ScalaFutures {
+class TaxEnrolmentConnectorSpec extends UnitSpec with MockitoSugar {
 
   val mockHttpClient: HttpClient = mock[HttpClient]
   val mockAppConfig: AppConfig = mock[AppConfig]
-
-  implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
   val connector = new TaxEnrolmentConnector(mockHttpClient, mockAppConfig)
 
   "EnrolmentsStoreConnector" should {
     "connect to EnrolmentsStore and return HttpResponse" in {
-
       val testHttpResponse = HttpResponse(200)
       val enrolmentKey = "enrolmentKey"
       val groupId = "groupId"
-
       when(mockHttpClient.DELETE[HttpResponse](contains(groupId), any())(any(), any(), any())).thenReturn(Future.successful(testHttpResponse))
-
-      connector.es9DeallocateGroup(groupId, enrolmentKey).futureValue shouldBe testHttpResponse
-
+      await(connector.es9DeallocateGroup(groupId, enrolmentKey)) shouldBe testHttpResponse
     }
   }
+
 }

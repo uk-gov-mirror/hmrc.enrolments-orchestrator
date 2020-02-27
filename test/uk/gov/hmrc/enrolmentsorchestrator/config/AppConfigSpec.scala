@@ -18,6 +18,7 @@ package uk.gov.hmrc.enrolmentsorchestrator.config
 
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import uk.gov.hmrc.enrolmentsorchestrator.UnitSpec
+import uk.gov.hmrc.enrolmentsorchestrator.models.BasicAuthentication
 
 class AppConfigSpec extends UnitSpec with GuiceOneAppPerSuite {
 
@@ -25,7 +26,10 @@ class AppConfigSpec extends UnitSpec with GuiceOneAppPerSuite {
 
   appConfig.auditingEnabled shouldBe true
   appConfig.graphiteHost shouldBe "graphite"
+  appConfig.authBaseUrl shouldBe "http://localhost:8500"
   appConfig.enrolmentsStoreBaseUrl shouldBe "http://localhost:9595"
   appConfig.taxEnrolmentsBaseUrl shouldBe "http://localhost:9995"
+
+  appConfig.expectedAuth shouldBe BasicAuthentication("username", "password")
 
 }

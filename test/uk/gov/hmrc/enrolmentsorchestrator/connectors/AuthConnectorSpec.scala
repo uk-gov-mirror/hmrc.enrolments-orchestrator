@@ -16,32 +16,32 @@
 
 package uk.gov.hmrc.enrolmentsorchestrator.connectors
 
-import org.mockito.ArgumentMatchers.{any, contains}
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
+import play.api.http.HeaderNames.AUTHORIZATION
 import uk.gov.hmrc.enrolmentsorchestrator.UnitSpec
 import uk.gov.hmrc.enrolmentsorchestrator.config.AppConfig
+import uk.gov.hmrc.enrolmentsorchestrator.models.PrivilegedApplicationClientLogin
 import uk.gov.hmrc.http.HttpResponse
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class EnrolmentsStoreConnectorSpec extends UnitSpec with MockitoSugar {
+class AuthConnectorSpec extends UnitSpec with MockitoSugar {
 
   val mockHttpClient: HttpClient = mock[HttpClient]
   val mockAppConfig: AppConfig = mock[AppConfig]
 
-  val connector = new EnrolmentsStoreConnector(mockHttpClient, mockAppConfig)
+  val connector = new AuthConnector(mockHttpClient, mockAppConfig)
 
-  "EnrolmentsStoreConnector" should {
-    "connect to EnrolmentsStore and return HttpResponse" in {
-      val testHttpResponse = HttpResponse(200)
-      val enrolmentKey = "enrolmentKey"
-      when(mockHttpClient.GET[HttpResponse](contains(enrolmentKey))(any(), any(), any()))
+  "AuthConnector" should {
+    "connect to auth to create session" in {
+      val testHttpResponse = HttpResponse(200, responseHeaders = Map(AUTHORIZATION -> Seq(AUTHORIZATION)))
+      when(mockHttpClient.POST[PrivilegedApplicationClientLogin, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
         .thenReturn(Future.successful(testHttpResponse))
-      await(connector.es1GetPrincipalGroups(enrolmentKey)) shouldBe testHttpResponse
+      await(connector.createBearerToken("applicationName")).header(AUTHORIZATION) shouldBe Some(AUTHORIZATION)
     }
   }
-
 }

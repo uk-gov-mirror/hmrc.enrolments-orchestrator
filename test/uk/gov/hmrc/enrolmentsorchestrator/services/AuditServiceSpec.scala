@@ -14,15 +14,24 @@
  * limitations under the License.
  */
 
-import org.scalatest.{Matchers, WordSpec}
+package uk.gov.hmrc.enrolmentsorchestrator.services
+
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
+import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.enrolmentsorchestrator.models._
-import uk.gov.hmrc.enrolmentsorchestrator.services.AuditService
+import uk.gov.hmrc.enrolmentsorchestrator.{LogCapturing, UnitSpec}
+import uk.gov.hmrc.http.Upstream4xxResponse
+import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
-class AuditServiceSpec extends WordSpec with Matchers with MockitoSugar {
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+
+class AuditServiceSpec extends UnitSpec with LogCapturing with MockitoSugar {
+
   val AUDIT_SOURCE = "enrolments-orchestrator"
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
   val auditService = new AuditService(mockAuditConnector)
@@ -34,6 +43,7 @@ class AuditServiceSpec extends WordSpec with Matchers with MockitoSugar {
   }
 
   "The AuditHelper" should {
+
     "create an AgentDeleteRequest when a request is received by the service" in {
       val auditType: String = "AgentDeleteRequest"
       val testAgentDeleteRequest: AgentDeleteRequest = AgentDeleteRequest("XXXX1234567", 15797056635L)
@@ -41,7 +51,6 @@ class AuditServiceSpec extends WordSpec with Matchers with MockitoSugar {
       val auditEventRequest = auditService.auditDeleteRequestEvent(testAgentDeleteRequest)
 
       auditEventAssert(auditEventRequest, auditType, agentDeleteResponseJson)
-
     }
 
     "create an AgentDeleteResponse when a failed response is received" in {
@@ -51,7 +60,6 @@ class AuditServiceSpec extends WordSpec with Matchers with MockitoSugar {
       val auditEventResponse = auditService.auditAgentDeleteResponseEvent(testAgentDeleteResponse)
 
       auditEventAssert(auditEventResponse, auditType, agentDeleteResponseJson)
-
     }
 
     "create an AgentDeleteResponse when a successful response is received" in {
@@ -61,8 +69,24 @@ class AuditServiceSpec extends WordSpec with Matchers with MockitoSugar {
       val auditEventResponse = auditService.auditAgentDeleteResponseEvent(testAgentDeleteResponse)
 
       auditEventAssert(auditEventResponse, auditType, agentDeleteResponseJson)
-
     }
-  }
-}
 
+    "able to recover from auditConnector failure and log the failure" in {
+      withCaptureOfLoggingFrom(Logger) { logEvents =>
+        val testAgentDeleteResponse: AgentDeleteResponse = AgentDeleteResponse("XXXX1234567", 15797056635L, success = false, 200, None)
+        val auditEventResponse = auditService.auditAgentDeleteResponseEvent(testAgentDeleteResponse)
+
+        when(mockAuditConnector.sendExtendedEvent(eqTo(auditEventResponse))(any(), any())).thenReturn(Future.failed(Upstream4xxResponse("", 404, 404)))
+
+        await(auditService.audit(auditEventResponse)).asInstanceOf[AuditResult.Failure].msg shouldBe AuditResult.Failure("Failed sending audit message").msg
+
+        logEvents.length shouldBe 1
+        logEvents.collectFirst { case logEvent =>
+          logEvent.getMessage shouldBe s"Failed sending audit message"
+        }
+      }
+    }
+
+  }
+
+}

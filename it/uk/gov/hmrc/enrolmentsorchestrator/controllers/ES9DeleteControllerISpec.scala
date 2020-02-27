@@ -22,7 +22,7 @@ class ES9DeleteControllerISpec extends TestSetupHelper with LogCapturing {
           withCaptureOfLoggingFrom(Logger) { logEvents =>
             await(
               wsClient.url(resource(s"$es9DeleteBaseUrl/$testARN"))
-                .withHttpHeaders(HeaderNames.authorisation -> authToken)
+                .withHttpHeaders(HeaderNames.authorisation -> s"Basic ${basicAuth("username:password")}")
                 .delete()
             ).status shouldBe 204
             logEvents.length shouldBe 1
@@ -37,7 +37,9 @@ class ES9DeleteControllerISpec extends TestSetupHelper with LogCapturing {
 
         withClient { wsClient =>
           withCaptureOfLoggingFrom(Logger) { logEvents =>
-            await(wsClient.url(resource(s"$es9DeleteBaseUrl/$testARN")).delete()).status shouldBe 204
+            await(wsClient.url(resource(s"$es9DeleteBaseUrl/$testARN"))
+              .withHttpHeaders(HeaderNames.authorisation -> s"Basic ${basicAuth("username:password")}")
+              .delete()).status shouldBe 204
             logEvents.length shouldBe 2
             logEvents.head.toString.contains("For enrolmentKey: HMRC-AS-AGENT~AgentReferenceNumber~AARN123 200 was not returned by Enrolments-Store, " +
               "ie no groupId found there are no allocated groups (the enrolment itself may or may not actually exist) " +
@@ -45,21 +47,21 @@ class ES9DeleteControllerISpec extends TestSetupHelper with LogCapturing {
           }
         }
       }
-
     }
 
 
     "return 401" when {
-      """Request received but Bearer token not supplied. A logger.info about "response is 401" will fired""" in {
+      """Request received but basic auth token not supplied. A logger.info about "response is 401" will fired""" in {
 
         startESProxyWireMockServerFullHappyPath
 
         withClient { wsClient =>
           withCaptureOfLoggingFrom(Logger) { logEvents =>
-            await(wsClient.url(resource(s"$es9DeleteBaseUrl/$testARN")).delete()).status shouldBe 401
-            logEvents.length shouldBe 2
-            logEvents.head.toString.contains("For enrolmentKey: HMRC-AS-AGENT~AgentReferenceNumber~AARN123 and groupId: 90ccf333-65d2-4bf2-a008-01dfca702161 " +
-              "204 was not returned by Tax-Enrolments, the response is 401") shouldBe true
+            val response = await(wsClient.url(resource(s"$es9DeleteBaseUrl/$testARN")).delete())
+            response.status shouldBe 401
+            response.body shouldBe "BasicAuthentication failed"
+            logEvents.length shouldBe 1
+            logEvents.head.toString.contains("401") shouldBe true
           }
         }
       }
@@ -68,12 +70,11 @@ class ES9DeleteControllerISpec extends TestSetupHelper with LogCapturing {
 
     "return 500" when {
       "An exception occurred by external services such as Connection refused" in {
-
         val es9DeleteResponse = withClient {
           wsClient =>
             await(
               wsClient.url(resource(s"$es9DeleteBaseUrl/$testARN"))
-                .withHttpHeaders(HeaderNames.authorisation -> authToken)
+                .withHttpHeaders(HeaderNames.authorisation -> s"Basic ${basicAuth("username:password")}")
                 .delete()
             )
         }
