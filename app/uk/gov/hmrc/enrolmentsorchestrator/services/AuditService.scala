@@ -54,4 +54,5 @@ class AuditService @Inject()(auditConnector: AuditConnector){
       detail = Json toJson agentDeleteResponse
     )
   }
+
 }

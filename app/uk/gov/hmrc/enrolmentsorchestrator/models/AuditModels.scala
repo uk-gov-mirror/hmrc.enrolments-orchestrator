@@ -15,13 +15,14 @@
  */
 
 package uk.gov.hmrc.enrolmentsorchestrator.models
-import play.api.libs.json.{JsPath, Json, OWrites}
+
 import play.api.libs.functional.syntax._
+import play.api.libs.json.{JsPath, Json, OFormat, OWrites}
 
 case class AgentDeleteRequest(ARN: String, terminationDate: Long)
 
 object AgentDeleteRequest{
-  implicit val format = Json.format[AgentDeleteRequest]
+  implicit val format: OFormat[AgentDeleteRequest] = Json.format[AgentDeleteRequest]
 }
 
 case class AgentDeleteResponse(ARN: String, terminationDate: Long, success: Boolean, ResponseCode: Int, failureReason: Option[String])
@@ -29,16 +30,15 @@ case class AgentDeleteResponse(ARN: String, terminationDate: Long, success: Bool
 object AgentDeleteResponse{
   implicit val auditWrites: OWrites[AgentDeleteResponse] = (
     (JsPath \ "ARN").write[String]           and
-      (JsPath \ "terminationDate").write[Long] and
-      (JsPath \ "success").write[Boolean]      and
-      (JsPath \ "ResponseCode").write[Int]     and
-      (JsPath \ "failureReason").writeNullable[String]) (response =>
-    (
-      response.ARN,
-      response.terminationDate,
-      response.success,
-      response.ResponseCode,
-      response.failureReason
+    (JsPath \ "terminationDate").write[Long] and
+    (JsPath \ "success").write[Boolean]      and
+    (JsPath \ "ResponseCode").write[Int]     and
+    (JsPath \ "failureReason").writeNullable[String]) (response =>
+    (response.ARN,
+     response.terminationDate,
+     response.success,
+     response.ResponseCode,
+     response.failureReason
     )
   )
 }

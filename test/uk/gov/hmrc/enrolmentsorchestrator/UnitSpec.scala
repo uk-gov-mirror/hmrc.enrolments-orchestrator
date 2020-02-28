@@ -16,53 +16,21 @@
 
 package uk.gov.hmrc.enrolmentsorchestrator
 
-import java.nio.charset.Charset
-
-import akka.stream.Materializer
-import akka.util.ByteString
 import org.scalatest.{Matchers, OptionValues, WordSpecLike}
-import play.api.http.HeaderNames
-import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Result
+import uk.gov.hmrc.http.HeaderCarrier
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
 
 trait UnitSpec extends WordSpecLike with Matchers with OptionValues {
 
-  implicit val defaultTimeout: FiniteDuration = 5 seconds
-
-  implicit def extractAwait[A](future: Future[A]): A = await[A](future)
+  implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
+  implicit val defaultTimeout: FiniteDuration = 5.seconds
 
   def await[A](future: Future[A])(implicit timeout: Duration): A = Await.result(future, timeout)
 
-  // Convenience to avoid having to wrap andThen() parameters in Future.successful
-  implicit def liftFuture[A](v: A): Future[A] = Future.successful(v)
-
-  def status(of: Result): Int = of.header.status
-
-  def status(of: Future[Result])(implicit timeout: Duration): Int = status(Await.result(of, timeout))
-
-  def jsonBodyOf(result: Result)(implicit mat: Materializer): JsValue = {
-    Json.parse(bodyOf(result))
-  }
-
-  def jsonBodyOf(resultF: Future[Result])(implicit mat: Materializer): Future[JsValue] = {
-    resultF.map(jsonBodyOf)
-  }
-
-  def bodyOf(result: Result)(implicit mat: Materializer): String = {
-    val bodyBytes: ByteString = await(result.body.consumeData)
-    bodyBytes.decodeString(Charset.defaultCharset().name)
-  }
-
-  def bodyOf(resultF: Future[Result])(implicit mat: Materializer): Future[String] = {
-    resultF.map(bodyOf)
-  }
-
-  def redirectLocation(result: Result): Option[String] = result.header.headers.get(HeaderNames.LOCATION)
-  def redirectLocation(result: Future[Result]): Option[String] = result.header.headers.get(HeaderNames.LOCATION)
+  def status(result: Future[Result]): Int = await(result).header.status
 
 }

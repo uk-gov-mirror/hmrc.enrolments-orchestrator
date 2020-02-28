@@ -18,6 +18,7 @@ package uk.gov.hmrc.enrolmentsorchestrator.config
 
 import javax.inject.{Inject, Singleton}
 import play.api.Configuration
+import uk.gov.hmrc.enrolmentsorchestrator.models.BasicAuthentication
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 @Singleton
@@ -26,7 +27,15 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig)
   val auditingEnabled: Boolean        = config.get[Boolean]("auditing.enabled")
   val graphiteHost: String            = config.get[String]("microservice.metrics.graphite.host")
 
+  val authBaseUrl:String              = servicesConfig.baseUrl("auth")
   val enrolmentsStoreBaseUrl:String   = servicesConfig.baseUrl("enrolment-store-proxy")
   val taxEnrolmentsBaseUrl:String     = servicesConfig.baseUrl("tax-enrolments")
+
+  def expectedAuth: BasicAuthentication = {
+    val username = config.get[String]("basicAuthentication.username")
+    val password = config.get[String]("basicAuthentication.password")
+
+    BasicAuthentication(username, password)
+  }
 
 }

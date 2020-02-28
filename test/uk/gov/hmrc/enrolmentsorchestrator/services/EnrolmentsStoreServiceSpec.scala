@@ -18,21 +18,18 @@ package uk.gov.hmrc.enrolmentsorchestrator.services
 
 import org.mockito.ArgumentMatchers.{any, contains}
 import org.mockito.Mockito.when
-import org.scalatest.concurrent.ScalaFutures
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Logger
 import play.api.libs.json.Json
 import uk.gov.hmrc.enrolmentsorchestrator.connectors.{EnrolmentsStoreConnector, TaxEnrolmentConnector}
 import uk.gov.hmrc.enrolmentsorchestrator.models.PrincipalGroupIds
 import uk.gov.hmrc.enrolmentsorchestrator.{LogCapturing, UnitSpec}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.HttpResponse
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class EnrolmentsStoreServiceSpec extends UnitSpec with LogCapturing with MockitoSugar with ScalaFutures {
-
-  implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
+class EnrolmentsStoreServiceSpec extends UnitSpec with LogCapturing with MockitoSugar {
 
   val mockEnrolmentsStoreConnector: EnrolmentsStoreConnector = mock[EnrolmentsStoreConnector]
   val mockTaxEnrolmentConnector: TaxEnrolmentConnector = mock[TaxEnrolmentConnector]
@@ -45,7 +42,6 @@ class EnrolmentsStoreServiceSpec extends UnitSpec with LogCapturing with Mockito
   "EnrolmentsStoreService" should {
 
     "return 204 HttpResponse if EnrolmentsStoreConnector returns 200 and TaxEnrolmentConnector returns 204" in {
-
       withCaptureOfLoggingFrom(Logger) { logEvents =>
 
         val enrolmentsStoreHttpResponseBody = Json.toJson(PrincipalGroupIds(List(groupId)))
@@ -63,7 +59,6 @@ class EnrolmentsStoreServiceSpec extends UnitSpec with LogCapturing with Mockito
         logEvents.length shouldBe 0
 
       }
-
     }
 
     "return HttpResponse from EnrolmentsStoreConnector if EnrolmentsStoreConnector returns not ok(200) and log the response" in {

@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-import org.scalatest.{Matchers, WordSpec}
+package uk.gov.hmrc.enrolmentsorchestrator.models
+
 import play.api.libs.json
 import play.api.libs.json._
-import uk.gov.hmrc.enrolmentsorchestrator.models._
+import uk.gov.hmrc.enrolmentsorchestrator.UnitSpec
 
-class AuditModelsSpec extends WordSpec with Matchers
-{
+class AuditModelsSpec extends UnitSpec {
+
   "The AuditModels" should {
     "match the AgentDeleteRequest scala object" in {
       val agentDeleteRequest = AgentDeleteRequest("XXXX1234567", 15797056635L)
@@ -49,4 +50,5 @@ class AuditModelsSpec extends WordSpec with Matchers
       agentDeleteResponseJson \ "ResponseCode" shouldBe JsDefined(json.JsNumber(200))
     }
   }
+
 }
