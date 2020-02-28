@@ -28,7 +28,6 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.logging.Authorization
 
 import scala.concurrent._
-import scala.concurrent.duration._
 import scala.util.matching.Regex
 
 @Singleton()
@@ -54,11 +53,9 @@ class AuthService @Inject()(authConnector: AuthConnector) {
 
   }
 
-  def createBearerToken(basicAuthentication: Option[BasicAuthentication])(implicit hc: HeaderCarrier, ex: ExecutionContext): Option[Authorization] = {
-    basicAuthentication.flatMap { ba =>
-      Await.result(
-        authConnector.createBearerToken(ba.username), 15.seconds
-      ).header(AUTHORIZATION).map(bearerToken => Authorization(bearerToken))
+  def createBearerToken(basicAuthentication: Option[BasicAuthentication])(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[Authorization]] = {
+    basicAuthentication.fold(Future successful (None: Option[Authorization])) {
+      ba => authConnector.createBearerToken(ba.username).map(_.header(AUTHORIZATION).map(bearerToken => Authorization(bearerToken)))
     }
   }
 
