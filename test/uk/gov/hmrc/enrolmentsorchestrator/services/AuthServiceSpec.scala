@@ -37,6 +37,10 @@ class AuthServiceSpec extends UnitSpec with AuthHelper {
         val testHeader: Headers = Headers(AUTHORIZATION -> s"Basic ${encodeToBase64("username")}")
         authService.getBasicAuth(testHeader) shouldBe None
       }
+      "there is a basic auth token, but not in base64 return None" in {
+        val testHeader: Headers = Headers(AUTHORIZATION -> s"Basic username:password")
+        authService.getBasicAuth(testHeader) shouldBe None
+      }
       "there is no token, return None" in {
         val testHeader: Headers = Headers()
         authService.getBasicAuth(testHeader) shouldBe None

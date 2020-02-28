@@ -34,7 +34,9 @@ import scala.util.matching.Regex
 @Singleton()
 class AuthService @Inject()(authConnector: AuthConnector) {
 
-  def decodeFromBase64(encodedString: String): String = new String(Base64.getDecoder.decode(encodedString), UTF_8)
+  private def decodeFromBase64(encodedString: String): String = try {
+    new String(Base64.getDecoder.decode(encodedString), UTF_8)
+  } catch { case _: Throwable => "" }
 
   def getBasicAuth(headers: Headers): Option[BasicAuthentication] = {
 
