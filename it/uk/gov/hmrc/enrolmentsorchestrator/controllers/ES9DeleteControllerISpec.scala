@@ -13,7 +13,7 @@ class ES9DeleteControllerISpec extends TestSetupHelper with LogCapturing {
 
   "DELETE      /enrolments-orchestrator/agents/:arn" should {
 
-    "return 204" when {
+    "return 200" when {
       "Request received and the attempt at deletion will be processed" in {
 
         startESProxyWireMockServerFullHappyPath
@@ -24,9 +24,9 @@ class ES9DeleteControllerISpec extends TestSetupHelper with LogCapturing {
               wsClient.url(resource(s"$es9DeleteBaseUrl/$testARN"))
                 .withHttpHeaders(HeaderNames.authorisation -> s"Basic ${basicAuth("username:password")}")
                 .delete()
-            ).status shouldBe 204
+            ).status shouldBe 200
             logEvents.length shouldBe 1
-            logEvents.head.toString.contains("DELETE /enrolments-orchestrator/agents/AARN123 204") shouldBe true
+            logEvents.head.toString.contains("DELETE /enrolments-orchestrator/agents/AARN123 200") shouldBe true
           }
         }
       }
@@ -39,7 +39,7 @@ class ES9DeleteControllerISpec extends TestSetupHelper with LogCapturing {
           withCaptureOfLoggingFrom(Logger) { logEvents =>
             await(wsClient.url(resource(s"$es9DeleteBaseUrl/$testARN"))
               .withHttpHeaders(HeaderNames.authorisation -> s"Basic ${basicAuth("username:password")}")
-              .delete()).status shouldBe 204
+              .delete()).status shouldBe 200
             logEvents.length shouldBe 2
             logEvents.head.toString.contains("For enrolmentKey: HMRC-AS-AGENT~AgentReferenceNumber~AARN123 200 was not returned by Enrolments-Store, " +
               "ie no groupId found there are no allocated groups (the enrolment itself may or may not actually exist) " +

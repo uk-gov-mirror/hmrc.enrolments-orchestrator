@@ -15,7 +15,7 @@ Responds with:
 
 | Status        | Message       |
 |:-------------:|---------------|
-| 204      | Done |
+| 200      | OK Request received and the attempt at deletion will be processed |
 | 400      | Payload incorrect or insufficient for processing.|
 | 401      | Unauthorised - the provided bearer token is either expired or not valid|
 | 500      | Service error |
