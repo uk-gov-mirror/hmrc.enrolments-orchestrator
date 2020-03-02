@@ -54,9 +54,14 @@ class ES9DeleteController @Inject()(appConfig: AppConfig,
 
         if (basicAuth.contains(expectedAuth)) {
           enrolmentsStoreService.terminationByEnrolmentKey(enrolmentKey).map { res =>
-            if (res.status == 204) auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, success = true, res.status, None)))
-            else auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, success = false, res.status, Some(res.body))))
-            new Status(res.status)(res.body)
+            if (res.status == 204) {
+              auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, success = true, res.status, None)))
+              new Status(200)(res.body)
+            }
+            else {
+              auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, success = false, res.status, Some(res.body))))
+              new Status(res.status)(res.body)
+            }
           }.recover {
             case e: Upstream4xxResponse =>
               auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, success = false, e.upstreamResponseCode, Some(e.message))))

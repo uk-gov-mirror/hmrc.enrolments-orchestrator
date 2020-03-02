@@ -49,7 +49,7 @@ class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAp
 
   "DELETE /enrolments-orchestrator/agents/:ARN?terminationDate=Option[Long] ?= None" should {
 
-    "return 204, Request received and the attempt at deletion will be processed" in {
+    "return 200, Request received and the attempt at deletion will be processed" in {
       val testHttpResponse = HttpResponse(204, responseString = Some("done"))
       val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, success = true, 204, None)
       val extendedDataEventRequest = auditDeleteRequestEvent(testAgentDeleteRequest)
@@ -60,7 +60,7 @@ class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAp
 
       val result = controller.es9Delete(testARN, Some(testTerminationDate))(authedRequest)
 
-      status(result) shouldBe NO_CONTENT
+      status(result) shouldBe OK
       verifyAuditEvents(testAgentDeleteResponse)
     }
 

@@ -41,7 +41,7 @@ class EnrolmentsStoreServiceSpec extends UnitSpec with LogCapturing with Mockito
 
   "EnrolmentsStoreService" should {
 
-    "return 204 HttpResponse if EnrolmentsStoreConnector returns 200 and TaxEnrolmentConnector returns 204" in {
+    "return 200 HttpResponse if EnrolmentsStoreConnector returns 200 and TaxEnrolmentConnector returns 204" in {
       withCaptureOfLoggingFrom(Logger) { logEvents =>
 
         val enrolmentsStoreHttpResponseBody = Json.toJson(PrincipalGroupIds(List(groupId)))
