@@ -22,7 +22,7 @@ class ES9DeleteControllerISpec extends TestSetupHelper with LogCapturing {
           withCaptureOfLoggingFrom(Logger) { logEvents =>
             await(
               wsClient.url(resource(s"$es9DeleteBaseUrl/$testARN"))
-                .withHttpHeaders(HeaderNames.authorisation -> s"Basic ${basicAuth("username:password")}")
+                .withHttpHeaders(HeaderNames.authorisation -> s"Basic ${basicAuth("AgentTermDESUser:password")}")
                 .delete()
             ).status shouldBe 200
             logEvents.length shouldBe 1
@@ -38,7 +38,7 @@ class ES9DeleteControllerISpec extends TestSetupHelper with LogCapturing {
         withClient { wsClient =>
           withCaptureOfLoggingFrom(Logger) { logEvents =>
             await(wsClient.url(resource(s"$es9DeleteBaseUrl/$testARN"))
-              .withHttpHeaders(HeaderNames.authorisation -> s"Basic ${basicAuth("username:password")}")
+              .withHttpHeaders(HeaderNames.authorisation -> s"Basic ${basicAuth("AgentTermDESUser:password")}")
               .delete()).status shouldBe 200
             logEvents.length shouldBe 2
             logEvents.head.toString.contains("For enrolmentKey: HMRC-AS-AGENT~AgentReferenceNumber~AARN123 200 was not returned by Enrolments-Store, " +
@@ -74,7 +74,7 @@ class ES9DeleteControllerISpec extends TestSetupHelper with LogCapturing {
           wsClient =>
             await(
               wsClient.url(resource(s"$es9DeleteBaseUrl/$testARN"))
-                .withHttpHeaders(HeaderNames.authorisation -> s"Basic ${basicAuth("username:password")}")
+                .withHttpHeaders(HeaderNames.authorisation -> s"Basic ${basicAuth("AgentTermDESUser:password")}")
                 .delete()
             )
         }

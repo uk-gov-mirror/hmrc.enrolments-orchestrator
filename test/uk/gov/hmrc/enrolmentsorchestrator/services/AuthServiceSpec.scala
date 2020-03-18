@@ -30,15 +30,15 @@ class AuthServiceSpec extends UnitSpec with AuthHelper {
 
     "able to interpret basic auth from headers" when {
       "there is a valid basic auth token, return BasicAuthentication" in {
-        val testHeader: Headers = Headers(AUTHORIZATION -> s"Basic ${encodeToBase64("username:password")}")
-        authService.getBasicAuth(testHeader) shouldBe Some(BasicAuthentication("username", "password"))
+        val testHeader: Headers = Headers(AUTHORIZATION -> s"Basic ${encodeToBase64("AgentTermDESUser:password")}")
+        authService.getBasicAuth(testHeader) shouldBe Some(BasicAuthentication("AgentTermDESUser", "password"))
       }
       "there is an invalid basic auth token, return None" in {
         val testHeader: Headers = Headers(AUTHORIZATION -> s"Basic ${encodeToBase64("username")}")
         authService.getBasicAuth(testHeader) shouldBe None
       }
       "there is a basic auth token, but not in base64 return None" in {
-        val testHeader: Headers = Headers(AUTHORIZATION -> s"Basic username:password")
+        val testHeader: Headers = Headers(AUTHORIZATION -> s"Basic AgentTermDESUser:password")
         authService.getBasicAuth(testHeader) shouldBe None
       }
       "there is no token, return None" in {
@@ -49,7 +49,7 @@ class AuthServiceSpec extends UnitSpec with AuthHelper {
 
     "able to create a bearer token" when {
       "there is a BasicAuthentication, return Authorization" in {
-        val ba = BasicAuthentication("username", "password")
+        val ba = BasicAuthentication("AgentTermDESUser", "password")
         await(authService.createBearerToken(Some(ba))) shouldBe Some(Authorization(s"BEARER AUTHORIZATION"))
       }
       "there is no BasicAuthentication, return None" in {

@@ -30,6 +30,6 @@ class AppConfigSpec extends UnitSpec with GuiceOneAppPerSuite {
   appConfig.enrolmentsStoreBaseUrl shouldBe "http://localhost:9595"
   appConfig.taxEnrolmentsBaseUrl shouldBe "http://localhost:9995"
 
-  appConfig.expectedAuth shouldBe BasicAuthentication("username", "password")
+  appConfig.expectedAuth shouldBe BasicAuthentication("AgentTermDESUser", "password")
 
 }
