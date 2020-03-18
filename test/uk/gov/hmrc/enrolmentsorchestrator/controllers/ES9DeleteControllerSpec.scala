@@ -41,7 +41,7 @@ class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAp
   val controller = new ES9DeleteController(appConfig, mockAuditService, authService, Helpers.stubControllerComponents(), mockEnrolmentsStoreService)
 
   val unauthedRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest("DELETE", "/")
-  val authedRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest("DELETE", "/").withHeaders(AUTHORIZATION -> s"Basic ${encodeToBase64("username:password")}")
+  val authedRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest("DELETE", "/").withHeaders(AUTHORIZATION -> s"Basic ${encodeToBase64("AgentTermDESUser:password")}")
 
   val testARN = "AARN123"
   val testTerminationDate: Long = DateTime.now.toInstant.getMillis
