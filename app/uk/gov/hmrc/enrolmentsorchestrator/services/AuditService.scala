@@ -18,8 +18,8 @@ package uk.gov.hmrc.enrolmentsorchestrator.services
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.json.Json
+import play.api.mvc.Request
 import uk.gov.hmrc.enrolmentsorchestrator.models.{AgentDeleteRequest, AgentDeleteResponse}
-import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
@@ -29,7 +29,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class AuditService @Inject()(auditConnector: AuditConnector){
   val AUDIT_SOURCE = "enrolments-orchestrator"
 
-  def audit(event: ExtendedDataEvent)(implicit hc: HeaderCarrier, ec:ExecutionContext): Future[AuditResult] = {
+  def audit(event: ExtendedDataEvent)(implicit request: Request[_], ec:ExecutionContext): Future[AuditResult] = {
     auditConnector.sendExtendedEvent(event) recover {
       case t: Throwable ⇒
         Logger error(s"Failed sending audit message", t)

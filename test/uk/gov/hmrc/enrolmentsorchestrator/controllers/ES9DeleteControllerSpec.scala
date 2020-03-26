@@ -25,6 +25,7 @@ import play.api.mvc.AnyContentAsEmpty
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.enrolmentsorchestrator.config.AppConfig
+import uk.gov.hmrc.enrolmentsorchestrator.connectors.AgentStatusChangeConnector
 import uk.gov.hmrc.enrolmentsorchestrator.models.{AgentDeleteRequest, AgentDeleteResponse}
 import uk.gov.hmrc.enrolmentsorchestrator.services.EnrolmentsStoreService
 import uk.gov.hmrc.enrolmentsorchestrator.{AuditHelper, AuthHelper, UnitSpec}
@@ -36,9 +37,15 @@ import scala.concurrent.Future
 class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAppPerSuite with AuthHelper with AuditHelper {
 
   val appConfig: AppConfig = app.injector.instanceOf[AppConfig]
+  val mockAgentStatusChangeConnector: AgentStatusChangeConnector = mock[AgentStatusChangeConnector]
   val mockEnrolmentsStoreService: EnrolmentsStoreService = mock[EnrolmentsStoreService]
 
-  val controller = new ES9DeleteController(appConfig, mockAuditService, authService, Helpers.stubControllerComponents(), mockEnrolmentsStoreService)
+  val controller = new ES9DeleteController(appConfig,
+                                           mockAuditService,
+                                           authService,
+                                           mockEnrolmentsStoreService,
+                                           mockAgentStatusChangeConnector,
+                                           Helpers.stubControllerComponents())
 
   val unauthedRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest("DELETE", "/")
   val authedRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest("DELETE", "/").withHeaders(AUTHORIZATION -> s"Basic ${encodeToBase64("AgentTermDESUser:password")}")
@@ -55,7 +62,13 @@ class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAp
       val extendedDataEventRequest = auditDeleteRequestEvent(testAgentDeleteRequest)
       val extendedDataEventResponse = auditAgentDeleteResponseEvent(testAgentDeleteResponse)
 
-      when(mockEnrolmentsStoreService.terminationByEnrolmentKey(any())(any(), any())).thenReturn(Future.successful(testHttpResponse))
+      val testAgentStatusChangeHttpResponse = HttpResponse(200, responseString = Some("done"))
+      when(mockAgentStatusChangeConnector.agentStatusChangeToTerminate(any())(any(), any()))
+        .thenReturn(Future.successful(testAgentStatusChangeHttpResponse))
+
+      when(mockEnrolmentsStoreService.terminationByEnrolmentKey(any())(any(), any()))
+        .thenReturn(Future.successful(testHttpResponse))
+
       auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
 
       val result = controller.es9Delete(testARN, Some(testTerminationDate))(authedRequest)
@@ -64,7 +77,7 @@ class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAp
       verifyAuditEvents(testAgentDeleteResponse)
     }
 
-    "return 401, Request received but request without a valid auth token" in {
+    "return 401, Request received but request without a valid BasicAuth token" in {
       val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, success = false, 401, Some("BasicAuthentication failed"))
       val extendedDataEventRequest = auditDeleteRequestEvent(testAgentDeleteRequest)
       val extendedDataEventResponse = auditAgentDeleteResponseEvent(testAgentDeleteResponse)
@@ -77,12 +90,51 @@ class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAp
       verifyAuditEvents(testAgentDeleteResponse)
     }
 
-    "return 401, Request received but tax-enrolment throw not unauthed response" in {
+    "return 401, Request received but AgentStatusChange return 401 response" in {
       val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, success = false, 401, Some("notAuthed"))
       val extendedDataEventRequest = auditDeleteRequestEvent(testAgentDeleteRequest)
       val extendedDataEventResponse = auditAgentDeleteResponseEvent(testAgentDeleteResponse)
 
-      when(mockEnrolmentsStoreService.terminationByEnrolmentKey(any())(any(), any())).thenReturn(Future.failed(Upstream4xxResponse("notAuthed", 401, 401)))
+      val testAgentStatusChangeHttpResponse = HttpResponse(401, responseString = Some("notAuthed"))
+      when(mockAgentStatusChangeConnector.agentStatusChangeToTerminate(any())(any(), any()))
+        .thenReturn(Future.successful(testAgentStatusChangeHttpResponse))
+
+      auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
+
+      val result = controller.es9Delete(testARN, Some(testTerminationDate))(authedRequest)
+
+      status(result) shouldBe UNAUTHORIZED
+      verifyAuditEvents(testAgentDeleteResponse)
+    }
+
+    "return 401, Request received but AgentStatusChange throw 401 response" in {
+      val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, success = false, 401, Some("notAuthed"))
+      val extendedDataEventRequest = auditDeleteRequestEvent(testAgentDeleteRequest)
+      val extendedDataEventResponse = auditAgentDeleteResponseEvent(testAgentDeleteResponse)
+
+      when(mockAgentStatusChangeConnector.agentStatusChangeToTerminate(any())(any(), any()))
+        .thenReturn(Future.failed(Upstream4xxResponse("notAuthed", 401, 401)))
+
+      auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
+
+      val result = controller.es9Delete(testARN, Some(testTerminationDate))(authedRequest)
+
+      status(result) shouldBe UNAUTHORIZED
+      verifyAuditEvents(testAgentDeleteResponse)
+    }
+
+    "return 401, Request received but tax-enrolment throw 401 response" in {
+      val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, success = false, 401, Some("notAuthed"))
+      val extendedDataEventRequest = auditDeleteRequestEvent(testAgentDeleteRequest)
+      val extendedDataEventResponse = auditAgentDeleteResponseEvent(testAgentDeleteResponse)
+
+      val testAgentStatusChangeHttpResponse = HttpResponse(200, responseString = Some("done"))
+      when(mockAgentStatusChangeConnector.agentStatusChangeToTerminate(any())(any(), any()))
+        .thenReturn(Future.successful(testAgentStatusChangeHttpResponse))
+
+      when(mockEnrolmentsStoreService.terminationByEnrolmentKey(any())(any(), any()))
+        .thenReturn(Future.failed(Upstream4xxResponse("notAuthed", 401, 401)))
+
       auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
 
       val result = controller.es9Delete(testARN, Some(testTerminationDate))(authedRequest)
@@ -97,7 +149,13 @@ class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAp
       val extendedDataEventRequest = auditDeleteRequestEvent(testAgentDeleteRequest)
       val extendedDataEventResponse = auditAgentDeleteResponseEvent(testAgentDeleteResponse)
 
-      when(mockEnrolmentsStoreService.terminationByEnrolmentKey(any())(any(), any())).thenReturn(Future.successful(testHttpResponse))
+      val testAgentStatusChangeHttpResponse = HttpResponse(200, responseString = Some("done"))
+      when(mockAgentStatusChangeConnector.agentStatusChangeToTerminate(any())(any(), any()))
+        .thenReturn(Future.successful(testAgentStatusChangeHttpResponse))
+
+      when(mockEnrolmentsStoreService.terminationByEnrolmentKey(any())(any(), any()))
+        .thenReturn(Future.successful(testHttpResponse))
+
       auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
 
       val result = controller.es9Delete(testARN, Some(testTerminationDate))(authedRequest)
@@ -106,18 +164,39 @@ class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAp
       verifyAuditEvents(testAgentDeleteResponse)
     }
 
-    "return 500 if there are anything wrong with the service" in {
+    "return 500 if there are anything wrong with down stream such as EnrolmentsStore" in {
       val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, success = false, 500, Some("Internal service error"))
       val extendedDataEventRequest = auditDeleteRequestEvent(testAgentDeleteRequest)
       val extendedDataEventResponse = auditAgentDeleteResponseEvent(testAgentDeleteResponse)
 
-      when(mockEnrolmentsStoreService.terminationByEnrolmentKey(any())(any(), any())).thenReturn(Future.failed(new RuntimeException))
+      val testAgentStatusChangeHttpResponse = HttpResponse(200, responseString = Some("done"))
+      when(mockAgentStatusChangeConnector.agentStatusChangeToTerminate(any())(any(), any()))
+        .thenReturn(Future.successful(testAgentStatusChangeHttpResponse))
+
+      when(mockEnrolmentsStoreService.terminationByEnrolmentKey(any())(any(), any()))
+        .thenReturn(Future.failed(new RuntimeException))
+
       auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
 
       val result = controller.es9Delete(testARN, Some(testTerminationDate))(authedRequest)
 
       status(result) shouldBe INTERNAL_SERVER_ERROR
       verifyAuditEvents(testAgentDeleteResponse)
+    }
+
+    "return 500 if there are anything wrong with down stream such as AgentStatusChange" in {
+      val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, success = false, 500, Some("Internal service error"))
+      val extendedDataEventRequest = auditDeleteRequestEvent(testAgentDeleteRequest)
+      val extendedDataEventResponse = auditAgentDeleteResponseEvent(testAgentDeleteResponse)
+
+      when(mockAgentStatusChangeConnector.agentStatusChangeToTerminate(any())(any(), any()))
+        .thenReturn(Future.failed(new RuntimeException))
+
+      auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
+
+      val result = controller.es9Delete(testARN, Some(testTerminationDate))(authedRequest)
+
+      status(result) shouldBe INTERNAL_SERVER_ERROR
     }
 
   }

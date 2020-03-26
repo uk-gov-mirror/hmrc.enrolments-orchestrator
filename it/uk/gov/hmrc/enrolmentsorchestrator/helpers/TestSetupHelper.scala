@@ -15,7 +15,8 @@ trait TestSetupHelper extends WordSpecLike
   with WsTestClient
   with BeforeAndAfterEach
   with ServiceSpec
-  with WireMockSetup {
+  with EnrolmentStoreWireMockSetup
+  with AgentStatusChangeWireMockSetup {
 
   val es9DeleteBaseUrl = "/enrolments-orchestrator/agents"
   val testARN = "AARN123"

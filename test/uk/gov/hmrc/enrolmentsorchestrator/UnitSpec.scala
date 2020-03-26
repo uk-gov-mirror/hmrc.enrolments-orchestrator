@@ -19,6 +19,8 @@ package uk.gov.hmrc.enrolmentsorchestrator
 import org.scalatest.{Matchers, OptionValues, WordSpecLike}
 import play.api.mvc.Result
 import uk.gov.hmrc.http.HeaderCarrier
+import play.api.mvc.Request
+import play.api.test.FakeRequest
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -27,6 +29,7 @@ import scala.concurrent.{Await, Future}
 trait UnitSpec extends WordSpecLike with Matchers with OptionValues {
 
   implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
+  implicit val request: Request[_] = FakeRequest()
   implicit val defaultTimeout: FiniteDuration = 5.seconds
 
   def await[A](future: Future[A])(implicit timeout: Duration): A = Await.result(future, timeout)

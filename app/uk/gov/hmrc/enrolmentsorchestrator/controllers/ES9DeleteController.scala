@@ -18,8 +18,9 @@ package uk.gov.hmrc.enrolmentsorchestrator.controllers
 
 import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
-import play.api.mvc.{Action, AnyContent, ControllerComponents, Request}
+import play.api.mvc._
 import uk.gov.hmrc.enrolmentsorchestrator.config.AppConfig
+import uk.gov.hmrc.enrolmentsorchestrator.connectors.AgentStatusChangeConnector
 import uk.gov.hmrc.enrolmentsorchestrator.models.{AgentDeleteRequest, AgentDeleteResponse, BasicAuthentication}
 import uk.gov.hmrc.enrolmentsorchestrator.services.{AuditService, AuthService, EnrolmentsStoreService}
 import uk.gov.hmrc.http.logging.Authorization
@@ -32,54 +33,86 @@ import scala.concurrent.{ExecutionContext, Future}
 class ES9DeleteController @Inject()(appConfig: AppConfig,
                                     auditService: AuditService,
                                     authService: AuthService,
-                                    cc: ControllerComponents,
-                                    enrolmentsStoreService: EnrolmentsStoreService)
+                                    enrolmentsStoreService: EnrolmentsStoreService,
+                                    agentStatusChangeConnector: AgentStatusChangeConnector,
+                                    cc: ControllerComponents)
                                    (implicit executionContext: ExecutionContext) extends BackendController(cc) {
 
-
+  //more details about this end point: https://confluence.tools.tax.service.gov.uk/display/TM/SI+-+Enrolment+Orchestrator
   def es9Delete(arn: String, terminationDate: Option[Long]): Action[AnyContent] = Action.async { request =>
 
     val expectedAuth: BasicAuthentication = appConfig.expectedAuth
     val basicAuth: Option[BasicAuthentication] = authService.getBasicAuth(request.headers)
 
-    createBearerToken(basicAuth)(request).flatMap {
-      bearerToken =>
-        implicit val newHeaderCarrier: HeaderCarrier = HeaderCarrier(authorization = bearerToken)
+    val tDate: Long = terminationDate.getOrElse(DateTime.now.getMillis)
+    val enrolmentKey = s"HMRC-AS-AGENT~AgentReferenceNumber~$arn"
+    val agentDeleteRequest = AgentDeleteRequest(arn, tDate)
 
-        val tDate: Long = terminationDate.getOrElse(DateTime.now.getMillis)
-        val enrolmentKey = s"HMRC-AS-AGENT~AgentReferenceNumber~$arn"
-        val agentDeleteRequest = AgentDeleteRequest(arn, tDate)
+    auditService.audit(auditService.auditDeleteRequestEvent(agentDeleteRequest))(request, executionContext)
 
-        auditService.audit(auditService.auditDeleteRequestEvent(agentDeleteRequest))
-
-        if (basicAuth.contains(expectedAuth)) {
+    if (basicAuth.contains(expectedAuth)) {
+      agentStatusChangeToTerminate(arn, tDate) {
+        createBearerToken(basicAuth)(request).flatMap { bearerToken =>
+          implicit val newHeaderCarrier: HeaderCarrier = HeaderCarrier(authorization = bearerToken)
           enrolmentsStoreService.terminationByEnrolmentKey(enrolmentKey).map { res =>
             if (res.status == 204) {
-              auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, success = true, res.status, None)))
+              auditService.audit(
+                auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, success = true, res.status, None))
+              )(request, executionContext)
               new Status(200)(res.body)
             }
             else {
-              auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, success = false, res.status, Some(res.body))))
+              auditService.audit(
+                auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, success = false, res.status, Some(res.body)))
+              )(request, executionContext)
               new Status(res.status)(res.body)
             }
           }.recover {
             case e: Upstream4xxResponse =>
-              auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, success = false, e.upstreamResponseCode, Some(e.message))))
+              auditService.audit(
+                auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, success = false, e.upstreamResponseCode, Some(e.message)))
+              )(request, executionContext)
               new Status(e.upstreamResponseCode)(s"${e.message}")
             case _ =>
-              auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, success = false, 500, Some("Internal service error"))))
+              auditService.audit(
+                auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, success = false, 500, Some("Internal service error")))
+              )(request, executionContext)
               new Status(500)("Internal service error")
           }
-        } else {
-          auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, success = false, 401, Some("BasicAuthentication failed"))))
-          Future.successful(new Status(401)(s"BasicAuthentication failed"))
         }
+      }(request)
+    } else {
+      auditService.audit(
+        auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, success = false, 401, Some("BasicAuthentication failed")))
+      )(request, executionContext)
+      Future.successful(new Status(401)(s"BasicAuthentication failed"))
     }
 
   }
 
   private def createBearerToken(basicAuth: Option[BasicAuthentication])(implicit request: Request[_]): Future[Option[Authorization]] = {
     authService.createBearerToken(basicAuth)
+  }
+
+  private def agentStatusChangeToTerminate(arn: String, tDate: Long)(continueES9: Future[Result])(implicit request: Request[_]): Future[Result] = {
+    agentStatusChangeConnector.agentStatusChangeToTerminate(arn).flatMap { agentStatusChangeRes =>
+      if (agentStatusChangeRes.status == 200) continueES9
+      else {
+        auditService.audit(auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, success = false, agentStatusChangeRes.status, Some(agentStatusChangeRes.body))))
+        Future.successful(new Status(agentStatusChangeRes.status)(agentStatusChangeRes.body))
+      }
+    }.recover {
+      case e: Upstream4xxResponse =>
+        auditService.audit(
+          auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, success = false, e.upstreamResponseCode, Some(e.message)))
+        )(request, executionContext)
+        new Status(e.upstreamResponseCode)(s"${e.message}")
+      case _ =>
+        auditService.audit(
+          auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, success = false, 500, Some("Internal service error")))
+        )(request, executionContext)
+        new Status(500)("Internal service error")
+    }
   }
 
 }

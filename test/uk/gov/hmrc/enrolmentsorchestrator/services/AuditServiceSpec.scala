@@ -36,7 +36,7 @@ class AuditServiceSpec extends UnitSpec with LogCapturing with MockitoSugar {
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
   val auditService = new AuditService(mockAuditConnector)
 
-  def auditEventAssert(auditEvent: ExtendedDataEvent, auditType: String, agentDeleteResponseJson: JsValue): Unit ={
+  def auditEventAssert(auditEvent: ExtendedDataEvent, auditType: String, agentDeleteResponseJson: JsValue): Unit = {
     auditEvent.auditSource shouldBe AUDIT_SOURCE
     auditEvent.auditType shouldBe auditType
     auditEvent.detail shouldBe agentDeleteResponseJson
