@@ -34,18 +34,18 @@ import uk.gov.hmrc.http.{HttpResponse, Upstream4xxResponse}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAppPerSuite with AuthHelper with AuditHelper {
+class AgentControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAppPerSuite with AuthHelper with AuditHelper {
 
   val appConfig: AppConfig = app.injector.instanceOf[AppConfig]
   val mockAgentStatusChangeConnector: AgentStatusChangeConnector = mock[AgentStatusChangeConnector]
   val mockEnrolmentsStoreService: EnrolmentsStoreService = mock[EnrolmentsStoreService]
 
-  val controller = new ES9DeleteController(appConfig,
-                                           mockAuditService,
-                                           authService,
-                                           mockEnrolmentsStoreService,
-                                           mockAgentStatusChangeConnector,
-                                           Helpers.stubControllerComponents())
+  val controller = new AgentController(appConfig,
+                                       mockAuditService,
+                                       authService,
+                                       mockEnrolmentsStoreService,
+                                       mockAgentStatusChangeConnector,
+                                       Helpers.stubControllerComponents())
 
   val unauthedRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest("DELETE", "/")
   val authedRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest("DELETE", "/").withHeaders(AUTHORIZATION -> s"Basic ${encodeToBase64("AgentTermDESUser:password")}")
@@ -71,7 +71,7 @@ class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAp
 
       auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
 
-      val result = controller.es9Delete(testARN, Some(testTerminationDate))(authedRequest)
+      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(authedRequest)
 
       status(result) shouldBe OK
       verifyAuditEvents(testAgentDeleteResponse)
@@ -84,7 +84,7 @@ class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAp
 
       auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
 
-      val result = controller.es9Delete(testARN, Some(testTerminationDate))(unauthedRequest)
+      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(unauthedRequest)
 
       status(result) shouldBe UNAUTHORIZED
       verifyAuditEvents(testAgentDeleteResponse)
@@ -101,7 +101,7 @@ class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAp
 
       auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
 
-      val result = controller.es9Delete(testARN, Some(testTerminationDate))(authedRequest)
+      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(authedRequest)
 
       status(result) shouldBe UNAUTHORIZED
       verifyAuditEvents(testAgentDeleteResponse)
@@ -117,7 +117,7 @@ class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAp
 
       auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
 
-      val result = controller.es9Delete(testARN, Some(testTerminationDate))(authedRequest)
+      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(authedRequest)
 
       status(result) shouldBe UNAUTHORIZED
       verifyAuditEvents(testAgentDeleteResponse)
@@ -137,7 +137,7 @@ class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAp
 
       auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
 
-      val result = controller.es9Delete(testARN, Some(testTerminationDate))(authedRequest)
+      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(authedRequest)
 
       status(result) shouldBe UNAUTHORIZED
       verifyAuditEvents(testAgentDeleteResponse)
@@ -158,7 +158,7 @@ class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAp
 
       auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
 
-      val result = controller.es9Delete(testARN, Some(testTerminationDate))(authedRequest)
+      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(authedRequest)
 
       status(result) shouldBe INTERNAL_SERVER_ERROR
       verifyAuditEvents(testAgentDeleteResponse)
@@ -178,7 +178,7 @@ class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAp
 
       auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
 
-      val result = controller.es9Delete(testARN, Some(testTerminationDate))(authedRequest)
+      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(authedRequest)
 
       status(result) shouldBe INTERNAL_SERVER_ERROR
       verifyAuditEvents(testAgentDeleteResponse)
@@ -194,7 +194,7 @@ class ES9DeleteControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAp
 
       auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
 
-      val result = controller.es9Delete(testARN, Some(testTerminationDate))(authedRequest)
+      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(authedRequest)
 
       status(result) shouldBe INTERNAL_SERVER_ERROR
     }

@@ -1,4 +1,3 @@
 # microservice specific routes
 
-
-DELETE      /agents/:arn   uk.gov.hmrc.enrolmentsorchestrator.controllers.ES9DeleteController.es9Delete(arn: String, terminationDate: Option[Long])
+DELETE      /agents/:arn   uk.gov.hmrc.enrolmentsorchestrator.controllers.AgentController.deleteByARN(arn: String, terminationDate: Option[Long])

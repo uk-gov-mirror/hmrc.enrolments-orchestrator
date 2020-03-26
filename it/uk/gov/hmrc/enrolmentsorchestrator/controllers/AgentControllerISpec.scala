@@ -5,7 +5,7 @@ import uk.gov.hmrc.enrolmentsorchestrator.helpers.{LogCapturing, TestSetupHelper
 import uk.gov.hmrc.http.HeaderNames
 
 
-class ES9DeleteControllerISpec extends TestSetupHelper with LogCapturing {
+class AgentControllerISpec extends TestSetupHelper with LogCapturing {
 
   override def afterEach {
     wireMockEnrolmentStoreServer.stop()
