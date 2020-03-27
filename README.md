@@ -3,6 +3,7 @@
 
 ## Summary
 
+
 Agents and Traders require the capability to have their accounts and associated access suspended and terminated, the service is to fulfil this functionality.
 
 The enrolments-orchestrator service exposes a single API call:
