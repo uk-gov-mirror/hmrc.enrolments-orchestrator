@@ -20,6 +20,7 @@ Responds with:
 | 401      | Unauthorised - the provided bearer token is either expired or not valid|
 | 500      | Service error |
 
+More details about this end point: https://confluence.tools.tax.service.gov.uk/display/TM/SI+-+Enrolment+Orchestrator
 
 ### License
 

@@ -5,10 +5,11 @@ import uk.gov.hmrc.enrolmentsorchestrator.helpers.{LogCapturing, TestSetupHelper
 import uk.gov.hmrc.http.HeaderNames
 
 
-class ES9DeleteControllerISpec extends TestSetupHelper with LogCapturing {
+class AgentControllerISpec extends TestSetupHelper with LogCapturing {
 
   override def afterEach {
-    wireMockServer.stop()
+    wireMockEnrolmentStoreServer.stop()
+    wireMockAgentStatusChangeServer.stop()
   }
 
   "DELETE      /enrolments-orchestrator/agents/:arn" should {
@@ -16,6 +17,7 @@ class ES9DeleteControllerISpec extends TestSetupHelper with LogCapturing {
     "return 200" when {
       "Request received and the attempt at deletion will be processed" in {
 
+        agentStatusChangeReturnOK
         startESProxyWireMockServerFullHappyPath
 
         withClient { wsClient =>
@@ -33,6 +35,7 @@ class ES9DeleteControllerISpec extends TestSetupHelper with LogCapturing {
 
       """Request received but no groupId found by the arn. A logger.info about "may not actually exist" will fired""" in {
 
+        agentStatusChangeReturnOK
         startESProxyWireMockServerReturn204
 
         withClient { wsClient =>
@@ -51,15 +54,29 @@ class ES9DeleteControllerISpec extends TestSetupHelper with LogCapturing {
 
 
     "return 401" when {
+
       """Request received but basic auth token not supplied. A logger.info about "response is 401" will fired""" in {
-
-        startESProxyWireMockServerFullHappyPath
-
         withClient { wsClient =>
           withCaptureOfLoggingFrom(Logger) { logEvents =>
             val response = await(wsClient.url(resource(s"$es9DeleteBaseUrl/$testARN")).delete())
             response.status shouldBe 401
             response.body shouldBe "BasicAuthentication failed"
+            logEvents.length shouldBe 1
+            logEvents.head.toString.contains("401") shouldBe true
+          }
+        }
+      }
+
+      """Request received but AgentStatusChange service return 401. A logger.info about "response is 401" will fired""" in {
+
+        agentStatusChangeReturn401
+
+        withClient { wsClient =>
+          withCaptureOfLoggingFrom(Logger) { logEvents =>
+            val response = await(wsClient.url(resource(s"$es9DeleteBaseUrl/$testARN"))
+              .withHttpHeaders(HeaderNames.authorisation -> s"Basic ${basicAuth("AgentTermDESUser:password")}")
+              .delete())
+            response.status shouldBe 401
             logEvents.length shouldBe 1
             logEvents.head.toString.contains("401") shouldBe true
           }

@@ -6,16 +6,15 @@ import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 
-trait WireMockSetup {
+trait EnrolmentStoreWireMockSetup {
 
-  val wiremockHost: String = "localhost"
-  val wiremockPort: Int = 9595
-  val wireMockServer = new WireMockServer(wireMockConfig().port(wiremockPort))
-  WireMock.configureFor(wiremockHost, wiremockPort)
+  val enrolmentStoreWireMockHost: String = "localhost"
+  val enrolmentStoreWireMockPort: Int = 9595
+  val wireMockEnrolmentStoreServer = new WireMockServer(wireMockConfig().port(enrolmentStoreWireMockPort))
 
   def startESProxyWireMockServerFullHappyPath: StubMapping = {
-
-    wireMockServer.start()
+    WireMock.configureFor(enrolmentStoreWireMockHost, enrolmentStoreWireMockPort)
+    wireMockEnrolmentStoreServer.start()
 
     stubFor(
       get(urlEqualTo("/enrolment-store-proxy/enrolment-store/enrolments/HMRC-AS-AGENT~AgentReferenceNumber~AARN123/groups?type=principal"))
@@ -35,8 +34,8 @@ trait WireMockSetup {
   }
 
   def startESProxyWireMockServerReturn204: StubMapping = {
-
-    wireMockServer.start()
+    WireMock.configureFor(enrolmentStoreWireMockHost, enrolmentStoreWireMockPort)
+    wireMockEnrolmentStoreServer.start()
 
     stubFor(
       get(urlEqualTo("/enrolment-store-proxy/enrolment-store/enrolments/HMRC-AS-AGENT~AgentReferenceNumber~AARN123/groups?type=principal"))
