@@ -31,7 +31,7 @@ import scala.concurrent._
 import scala.util.matching.Regex
 
 @Singleton()
-class AuthService @Inject()(authConnector: AuthConnector) {
+class AuthService @Inject() (authConnector: AuthConnector) {
 
   private def decodeFromBase64(encodedString: String): String = try {
     new String(Base64.getDecoder.decode(encodedString), UTF_8)
@@ -46,7 +46,7 @@ class AuthService @Inject()(authConnector: AuthConnector) {
       case Some(basicAuthHeader(encodedAuthHeader)) =>
         decodeFromBase64(encodedAuthHeader) match {
           case decodedAuth(username, password) => Some(BasicAuthentication(username, password))
-          case _ => None
+          case _                               => None
         }
       case _ => None
     }
