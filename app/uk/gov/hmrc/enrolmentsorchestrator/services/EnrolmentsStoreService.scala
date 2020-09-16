@@ -26,7 +26,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, Upstream4xxResponse}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton()
-class EnrolmentsStoreService @Inject()(enrolmentsStoreConnector: EnrolmentsStoreConnector, taxEnrolmentConnector: TaxEnrolmentConnector) {
+class EnrolmentsStoreService @Inject() (enrolmentsStoreConnector: EnrolmentsStoreConnector, taxEnrolmentConnector: TaxEnrolmentConnector) {
 
   def terminationByEnrolmentKey(enrolmentKey: String)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[HttpResponse] = {
     enrolmentsStoreConnector.es1GetPrincipalGroups(enrolmentKey).flatMap { response =>

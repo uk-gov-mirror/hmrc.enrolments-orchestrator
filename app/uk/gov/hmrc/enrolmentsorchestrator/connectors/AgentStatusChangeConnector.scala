@@ -24,7 +24,7 @@ import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton()
-class AgentStatusChangeConnector @Inject()(httpClient: HttpClient, appConfig: AppConfig) {
+class AgentStatusChangeConnector @Inject() (httpClient: HttpClient, appConfig: AppConfig) {
 
   lazy val agentStatusChangeBaseUrl: String = appConfig.agentStatusChangeBaseUrl
 

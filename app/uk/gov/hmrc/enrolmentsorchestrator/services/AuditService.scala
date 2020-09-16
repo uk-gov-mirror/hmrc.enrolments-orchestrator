@@ -26,13 +26,13 @@ import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton()
-class AuditService @Inject()(auditConnector: AuditConnector){
+class AuditService @Inject() (auditConnector: AuditConnector) {
   val AUDIT_SOURCE = "enrolments-orchestrator"
 
-  def audit(event: ExtendedDataEvent)(implicit request: Request[_], ec:ExecutionContext): Future[AuditResult] = {
+  def audit(event: ExtendedDataEvent)(implicit request: Request[_], ec: ExecutionContext): Future[AuditResult] = {
     auditConnector.sendExtendedEvent(event) recover {
       case t: Throwable ⇒
-        Logger error(s"Failed sending audit message", t)
+        Logger error (s"Failed sending audit message", t)
         AuditResult.Failure(s"Failed sending audit message", Some(t))
     }
   }

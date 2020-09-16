@@ -25,7 +25,7 @@ import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton()
-class AuthConnector @Inject()(httpClient: HttpClient, appConfig: AppConfig) {
+class AuthConnector @Inject() (httpClient: HttpClient, appConfig: AppConfig) {
 
   lazy val authBaseUrl: String = appConfig.authBaseUrl
 

@@ -30,13 +30,13 @@ import uk.gov.hmrc.play.bootstrap.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton()
-class AgentController @Inject()(appConfig: AppConfig,
-                                auditService: AuditService,
-                                authService: AuthService,
-                                enrolmentsStoreService: EnrolmentsStoreService,
-                                agentStatusChangeConnector: AgentStatusChangeConnector,
-                                cc: ControllerComponents)
-                               (implicit executionContext: ExecutionContext) extends BackendController(cc) {
+class AgentController @Inject() (appConfig:                  AppConfig,
+                                 auditService:               AuditService,
+                                 authService:                AuthService,
+                                 enrolmentsStoreService:     EnrolmentsStoreService,
+                                 agentStatusChangeConnector: AgentStatusChangeConnector,
+                                 cc:                         ControllerComponents)
+  (implicit executionContext: ExecutionContext) extends BackendController(cc) {
 
   //more details about this end point: https://confluence.tools.tax.service.gov.uk/display/TM/SI+-+Enrolment+Orchestrator
   def deleteByARN(arn: String, terminationDate: Option[Long]): Action[AnyContent] = Action.async { implicit request =>
@@ -54,8 +54,7 @@ class AgentController @Inject()(appConfig: AppConfig,
       callAgentStatusChangeToTerminate(arn, tDate) {
         continueES9(basicAuth, arn, tDate, enrolmentKey, request)
       }
-    }
-    else {
+    } else {
       auditService.audit(
         auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, success = false, 401, Some("BasicAuthentication failed")))
       )
@@ -91,8 +90,7 @@ class AgentController @Inject()(appConfig: AppConfig,
             auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, success = true, res.status, None))
           )(request, executionContext)
           new Status(200)(res.body)
-        }
-        else {
+        } else {
           auditService.audit(
             auditService.auditAgentDeleteResponseEvent(AgentDeleteResponse(arn, tDate, success = false, res.status, Some(res.body)))
           )(request, executionContext)

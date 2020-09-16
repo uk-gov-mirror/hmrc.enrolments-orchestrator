@@ -25,7 +25,6 @@ import play.api.test.FakeRequest
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-
 trait UnitSpec extends WordSpecLike with Matchers with OptionValues {
 
   implicit val headerCarrier: HeaderCarrier = HeaderCarrier()

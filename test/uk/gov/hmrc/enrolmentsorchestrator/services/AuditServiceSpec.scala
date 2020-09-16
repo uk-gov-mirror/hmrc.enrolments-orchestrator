@@ -81,8 +81,9 @@ class AuditServiceSpec extends UnitSpec with LogCapturing with MockitoSugar {
         await(auditService.audit(auditEventResponse)).asInstanceOf[AuditResult.Failure].msg shouldBe AuditResult.Failure("Failed sending audit message").msg
 
         logEvents.length shouldBe 1
-        logEvents.collectFirst { case logEvent =>
-          logEvent.getMessage shouldBe s"Failed sending audit message"
+        logEvents.collectFirst {
+          case logEvent =>
+            logEvent.getMessage shouldBe s"Failed sending audit message"
         }
       }
     }

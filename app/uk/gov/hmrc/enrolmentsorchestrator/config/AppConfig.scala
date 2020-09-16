@@ -22,15 +22,15 @@ import uk.gov.hmrc.enrolmentsorchestrator.models.BasicAuthentication
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 @Singleton
-class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig) {
+class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig) {
 
-  val auditingEnabled: Boolean            = config.get[Boolean]("auditing.enabled")
-  val graphiteHost: String                = config.get[String]("microservice.metrics.graphite.host")
+  val auditingEnabled: Boolean = config.get[Boolean]("auditing.enabled")
+  val graphiteHost: String = config.get[String]("microservice.metrics.graphite.host")
 
-  val authBaseUrl:String                  = servicesConfig.baseUrl("auth")
-  val enrolmentsStoreBaseUrl:String       = servicesConfig.baseUrl("enrolment-store-proxy")
-  val taxEnrolmentsBaseUrl:String         = servicesConfig.baseUrl("tax-enrolments")
-  val agentStatusChangeBaseUrl:String     = servicesConfig.baseUrl("agent-status-change")
+  val authBaseUrl: String = servicesConfig.baseUrl("auth")
+  val enrolmentsStoreBaseUrl: String = servicesConfig.baseUrl("enrolment-store-proxy")
+  val taxEnrolmentsBaseUrl: String = servicesConfig.baseUrl("tax-enrolments")
+  val agentStatusChangeBaseUrl: String = servicesConfig.baseUrl("agent-status-change")
 
   def expectedAuth: BasicAuthentication = {
     val username = config.get[String]("basicAuthentication.username")

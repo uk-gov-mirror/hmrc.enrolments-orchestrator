@@ -24,7 +24,7 @@ import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton()
-class EnrolmentsStoreConnector @Inject()(httpClient: HttpClient, appConfig: AppConfig) {
+class EnrolmentsStoreConnector @Inject() (httpClient: HttpClient, appConfig: AppConfig) {
 
   lazy val enrolmentsStoreBaseUrl: String = appConfig.enrolmentsStoreBaseUrl
 

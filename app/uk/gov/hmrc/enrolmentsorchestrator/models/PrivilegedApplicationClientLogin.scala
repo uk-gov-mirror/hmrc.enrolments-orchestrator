@@ -20,11 +20,11 @@ import java.util.UUID
 
 import play.api.libs.json.{Json, OFormat}
 
-case class PrivilegedApplicationClientLogin(clientId: String = UUID.randomUUID().toString,
-                                            applicationId: Option[String] = None,
+case class PrivilegedApplicationClientLogin(clientId:        String         = UUID.randomUUID().toString,
+                                            applicationId:   Option[String] = None,
                                             applicationName: Option[String] = None,
-                                            enrolments: Set[String] = Set.empty[String],
-                                            ttl: Int = 14400)
+                                            enrolments:      Set[String]    = Set.empty[String],
+                                            ttl:             Int            = 14400)
 
 object PrivilegedApplicationClientLogin {
   implicit val format: OFormat[PrivilegedApplicationClientLogin] = Json.format[PrivilegedApplicationClientLogin]
