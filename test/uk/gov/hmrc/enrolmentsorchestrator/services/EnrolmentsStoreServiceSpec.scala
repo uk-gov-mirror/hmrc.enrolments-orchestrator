@@ -49,7 +49,7 @@ class EnrolmentsStoreServiceSpec extends UnitSpec with LogCapturing with Mockito
         val enrolmentsStoreHttpResponse = HttpResponse(200, Some(enrolmentsStoreHttpResponseBody))
         val taxEnrolmentHttpResponse = HttpResponse(204)
 
-        when(mockEnrolmentsStoreConnector.es1GetPrincipalGroups(contains(enrolmentKey))(any(), any()))
+        when(mockEnrolmentsStoreConnector.es1GetPrincipalGroups(contains(enrolmentKey))(any()))
           .thenReturn(Future.successful(enrolmentsStoreHttpResponse))
         when(mockTaxEnrolmentConnector.es9DeallocateGroup(contains(groupId), contains(enrolmentKey))(any(), any()))
           .thenReturn(Future.successful(taxEnrolmentHttpResponse))
@@ -67,7 +67,7 @@ class EnrolmentsStoreServiceSpec extends UnitSpec with LogCapturing with Mockito
         val testHttpResponse = HttpResponse(204)
         val enrolmentKey = "enrolmentKey"
 
-        when(mockEnrolmentsStoreConnector.es1GetPrincipalGroups(contains(enrolmentKey))(any(), any()))
+        when(mockEnrolmentsStoreConnector.es1GetPrincipalGroups(contains(enrolmentKey))(any()))
           .thenReturn(Future.successful(testHttpResponse))
 
         await(enrolmentsStoreService.terminationByEnrolmentKey(enrolmentKey)) shouldBe testHttpResponse
@@ -91,7 +91,7 @@ class EnrolmentsStoreServiceSpec extends UnitSpec with LogCapturing with Mockito
         val enrolmentsStoreHttpResponse = HttpResponse(200, Some(enrolmentsStoreHttpResponseBody))
         val taxEnrolmentHttpResponse = HttpResponse(400)
 
-        when(mockEnrolmentsStoreConnector.es1GetPrincipalGroups(contains(enrolmentKey))(any(), any()))
+        when(mockEnrolmentsStoreConnector.es1GetPrincipalGroups(contains(enrolmentKey))(any()))
           .thenReturn(Future.successful(enrolmentsStoreHttpResponse))
         when(mockTaxEnrolmentConnector.es9DeallocateGroup(contains(groupId), contains(enrolmentKey))(any(), any()))
           .thenReturn(Future.successful(taxEnrolmentHttpResponse))
