@@ -24,14 +24,19 @@ import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton()
-class EnrolmentsStoreConnector @Inject() (httpClient: HttpClient, appConfig: AppConfig) {
+class EnrolmentsStoreConnector @Inject() (httpClient: HttpClient, appConfig: AppConfig)(implicit ec: ExecutionContext) {
 
   lazy val enrolmentsStoreBaseUrl: String = appConfig.enrolmentsStoreBaseUrl
 
   //Query Groups who have an allocated Enrolment
-  def es1GetPrincipalGroups(enrolmentKey: String)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[HttpResponse] = {
+  def es1GetPrincipalGroups(enrolmentKey: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     val url = s"$enrolmentsStoreBaseUrl/enrolment-store-proxy/enrolment-store/enrolments/$enrolmentKey/groups?type=principal"
     httpClient.GET(url)
+  }
+
+  def assignEnrolment(credId: String, enrolmentKey: String)(implicit hc: HeaderCarrier): Future[Unit] = {
+    val url = s"$enrolmentsStoreBaseUrl/enrolment-store-proxy/enrolment-store/users/$credId/enrolments/$enrolmentKey"
+    httpClient.POSTEmpty[HttpResponse](url).map(_ => ())
   }
 
 }
