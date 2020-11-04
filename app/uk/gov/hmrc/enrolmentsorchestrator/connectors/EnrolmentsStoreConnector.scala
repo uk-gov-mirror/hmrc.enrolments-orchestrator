@@ -17,6 +17,7 @@
 package uk.gov.hmrc.enrolmentsorchestrator.connectors
 
 import javax.inject.{Inject, Singleton}
+import play.api.libs.json.Json
 import uk.gov.hmrc.enrolmentsorchestrator.config.AppConfig
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
@@ -34,9 +35,14 @@ class EnrolmentsStoreConnector @Inject() (httpClient: HttpClient, appConfig: App
     httpClient.GET(url)
   }
 
-  def assignEnrolment(credId: String, enrolmentKey: String)(implicit hc: HeaderCarrier): Future[Unit] = {
-    val url = s"$enrolmentsStoreBaseUrl/enrolment-store-proxy/enrolment-store/users/$credId/enrolments/$enrolmentKey"
-    httpClient.POSTEmpty[HttpResponse](url).map(_ => ())
+  //see https://github.com/hmrc/enrolment-store-proxy#es8-allocate-enrolment-to-group
+  def es8EnrolAndActivateEnrolmentOnGroup(groupId: String, credId: String, enrolmentKey: String)(implicit hc: HeaderCarrier): Future[Unit] = {
+    val url = s"/enrolment-store-proxy/enrolment-store/groups/$groupId/enrolments/$enrolmentKey"
+    httpClient.POSTString[HttpResponse](url, Json.stringify(Json.obj(
+      "userId" -> credId,
+      "type" -> "principal",
+      "action" -> "enrolAndActivate"
+    ))).map(_ => ())
   }
 
 }

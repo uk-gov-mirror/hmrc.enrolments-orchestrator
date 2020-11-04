@@ -42,12 +42,13 @@ class DataCorrectionService @Inject() (
     corrections.map { correction =>
       val credId = correction.get[String]("credId")
       val enrolmentKey = correction.get[String]("enrolmentKey")
+      val groupId = correction.get[String]("groupId")
 
-      Logger.info(s"[GG-5119] Applying enrolment $enrolmentKey to cred $credId")
-      enrolmentStore.assignEnrolment(credId, enrolmentKey)(HeaderCarrier()).map { _ =>
-        Logger.info(s"[GG-5119] Successfully applied enrolment $enrolmentKey to cred $credId")
+      Logger.info(s"[GG-5119] Applying enrolment $enrolmentKey for groupId:$groupId credId:$credId")
+      enrolmentStore.es8EnrolAndActivateEnrolmentOnGroup(groupId, credId, enrolmentKey)(HeaderCarrier()).map { _ =>
+        Logger.info(s"[GG-5119] Successfully enrolled and activated enrolment $enrolmentKey for groupId:$groupId credId:$credId")
       }.recover {
-        case e => Logger.error(s"[GG-5119] Failed to apply enrolment $enrolmentKey to cred $credId", e)
+        case e => Logger.error(s"[GG-5119] Failed to apply enrolment $enrolmentKey for groupId:$groupId credId:$credId", e)
       }
     }
   }.map(_ => ())
