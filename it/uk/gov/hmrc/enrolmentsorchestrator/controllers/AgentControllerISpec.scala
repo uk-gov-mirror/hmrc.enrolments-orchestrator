@@ -2,6 +2,7 @@ package uk.gov.hmrc.enrolmentsorchestrator.controllers
 
 import play.api.Logger
 import uk.gov.hmrc.enrolmentsorchestrator.helpers.{LogCapturing, TestSetupHelper}
+import uk.gov.hmrc.enrolmentsorchestrator.services.EnrolmentsStoreService
 import uk.gov.hmrc.http.HeaderNames
 
 
@@ -39,11 +40,11 @@ class AgentControllerISpec extends TestSetupHelper with LogCapturing {
         startESProxyWireMockServerReturn204
 
         withClient { wsClient =>
-          withCaptureOfLoggingFrom(Logger) { logEvents =>
+          withCaptureOfLoggingFrom(Logger(classOf[EnrolmentsStoreService])) { logEvents =>
             await(wsClient.url(resource(s"$es9DeleteBaseUrl/$testARN"))
               .withHttpHeaders(HeaderNames.authorisation -> s"Basic ${basicAuth("AgentTermDESUser:password")}")
               .delete()).status shouldBe 200
-            logEvents.length shouldBe 2
+            logEvents.length shouldBe 1
             logEvents.head.toString.contains("For enrolmentKey: HMRC-AS-AGENT~AgentReferenceNumber~AARN123 200 was not returned by Enrolments-Store, " +
               "ie no groupId found there are no allocated groups (the enrolment itself may or may not actually exist) " +
               "or there is nothing to return, the response is 204 with body ") shouldBe true

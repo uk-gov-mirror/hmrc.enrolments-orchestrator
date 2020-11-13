@@ -72,7 +72,7 @@ class AuditServiceSpec extends UnitSpec with LogCapturing with MockitoSugar {
     }
 
     "able to recover from auditConnector failure and log the failure" in {
-      withCaptureOfLoggingFrom(Logger) { logEvents =>
+      withCaptureOfLoggingFrom(Logger(classOf[AuditService])) { logEvents =>
         val testAgentDeleteResponse: AgentDeleteResponse = AgentDeleteResponse("XXXX1234567", 15797056635L, success = false, 200, None)
         val auditEventResponse = auditService.auditAgentDeleteResponseEvent(testAgentDeleteResponse)
 
