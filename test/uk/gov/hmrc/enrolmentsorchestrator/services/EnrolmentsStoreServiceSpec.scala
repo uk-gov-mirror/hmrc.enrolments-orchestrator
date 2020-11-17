@@ -42,7 +42,7 @@ class EnrolmentsStoreServiceSpec extends UnitSpec with LogCapturing with Mockito
   "EnrolmentsStoreService" should {
 
     "return 200 HttpResponse if EnrolmentsStoreConnector returns 200 and TaxEnrolmentConnector returns 204" in {
-      withCaptureOfLoggingFrom(Logger) { logEvents =>
+      withCaptureOfLoggingFrom(Logger(classOf[EnrolmentsStoreService])) { logEvents =>
 
         val enrolmentsStoreHttpResponseBody = Json.toJson(PrincipalGroupIds(List(groupId)))
 
@@ -62,7 +62,7 @@ class EnrolmentsStoreServiceSpec extends UnitSpec with LogCapturing with Mockito
     }
 
     "return HttpResponse from EnrolmentsStoreConnector if EnrolmentsStoreConnector returns not ok(200) and log the response" in {
-      withCaptureOfLoggingFrom(Logger) { logEvents =>
+      withCaptureOfLoggingFrom(Logger(classOf[EnrolmentsStoreService])) { logEvents =>
 
         val testHttpResponse = HttpResponse(204)
         val enrolmentKey = "enrolmentKey"
@@ -84,7 +84,7 @@ class EnrolmentsStoreServiceSpec extends UnitSpec with LogCapturing with Mockito
     }
 
     "return HttpResponse from TaxEnrolmentConnector if EnrolmentsStoreConnector returns 200 but TaxEnrolmentConnector not returns 204 and log the response" in {
-      withCaptureOfLoggingFrom(Logger) { logEvents =>
+      withCaptureOfLoggingFrom(Logger(classOf[EnrolmentsStoreService])) { logEvents =>
 
         val enrolmentsStoreHttpResponseBody = Json.toJson(PrincipalGroupIds(List(groupId)))
 

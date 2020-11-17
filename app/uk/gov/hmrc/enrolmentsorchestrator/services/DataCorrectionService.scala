@@ -17,7 +17,7 @@
 package uk.gov.hmrc.enrolmentsorchestrator.services
 
 import javax.inject.Inject
-import play.api.{Configuration, Logger}
+import play.api.{Configuration, Logger, Logging}
 import uk.gov.hmrc.enrolmentsorchestrator.connectors.EnrolmentsStoreConnector
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -26,7 +26,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class DataCorrectionService @Inject() (
     enrolmentStore: EnrolmentsStoreConnector,
     configuration:  Configuration
-)(implicit ec: ExecutionContext) {
+)(implicit ec: ExecutionContext) extends Logging {
 
   private val config = configuration.get[Configuration]("oneOffDataCorrection")
   private val enabled = config.get[Boolean]("enabled")
@@ -35,7 +35,7 @@ class DataCorrectionService @Inject() (
   if (enabled) {
     applyCorrections()
   } else {
-    Logger.info("[GG-5119] data correction task disabled")
+    logger.info("[GG-5119] data correction task disabled")
   }
 
   private def applyCorrections(): Future[Unit] = Future.sequence {
@@ -43,11 +43,11 @@ class DataCorrectionService @Inject() (
       val credId = correction.get[String]("credId")
       val enrolmentKey = correction.get[String]("enrolmentKey")
 
-      Logger.info(s"[GG-5119] Applying enrolment $enrolmentKey to cred $credId")
+      logger.info(s"[GG-5119] Applying enrolment $enrolmentKey to cred $credId")
       enrolmentStore.assignEnrolment(credId, enrolmentKey)(HeaderCarrier()).map { _ =>
-        Logger.info(s"[GG-5119] Successfully applied enrolment $enrolmentKey to cred $credId")
+        logger.info(s"[GG-5119] Successfully applied enrolment $enrolmentKey to cred $credId")
       }.recover {
-        case e => Logger.error(s"[GG-5119] Failed to apply enrolment $enrolmentKey to cred $credId", e)
+        case e => logger.error(s"[GG-5119] Failed to apply enrolment $enrolmentKey to cred $credId", e)
       }
     }
   }.map(_ => ())
