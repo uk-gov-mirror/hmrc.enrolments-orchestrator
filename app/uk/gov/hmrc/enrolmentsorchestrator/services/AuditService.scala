@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,44 +15,72 @@
  */
 
 package uk.gov.hmrc.enrolmentsorchestrator.services
-import javax.inject.{Inject, Singleton}
+
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.Request
-import uk.gov.hmrc.enrolmentsorchestrator.models.{AgentDeleteRequest, AgentDeleteResponse}
-import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendHeaderCarrierProvider
+import uk.gov.hmrc.play.audit.AuditExtensions._
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton()
-class AuditService @Inject() (auditConnector: AuditConnector) extends Logging {
-  val AUDIT_SOURCE = "enrolments-orchestrator"
+class AuditService @Inject() (auditConnector: AuditConnector)(implicit ec: ExecutionContext) extends Logging with BackendHeaderCarrierProvider {
+  def auditDeleteRequest(agentReferenceNumber: String, terminationDate: Long)(implicit request: Request[_]): Unit = {
+    val event = ExtendedDataEvent(
+      "enrolments-orchestrator",
+      "AgentDeleteRequest",
+      detail = Json.obj(
+        "agentReferenceNumber" -> agentReferenceNumber,
+        "terminationDate" -> terminationDate
+      ),
+      tags   = hc.toAuditTags("HMRC Gateway - Enrolments Orchestrator - Agent Delete Request", request.path)
+    )
 
-  def audit(event: ExtendedDataEvent)(implicit request: Request[_], ec: ExecutionContext): Future[AuditResult] = {
-    auditConnector.sendExtendedEvent(event) recover {
-      case t: Throwable ⇒
-        logger error (s"Failed sending audit message", t)
-        AuditResult.Failure(s"Failed sending audit message", Some(t))
+    audit(event)
+  }
+
+  def auditSuccessfulAgentDeleteResponse(agentReferenceNumber: String, terminationDate: Long, statusCode: Int)(implicit request: Request[_]): Unit = {
+    val event = ExtendedDataEvent(
+      "enrolments-orchestrator",
+      "AgentDeleteResponse",
+      detail = Json.obj(
+        "agentReferenceNumber" -> agentReferenceNumber,
+        "terminationDate" -> terminationDate,
+        "statusCode" -> statusCode,
+        "success" -> true
+      ),
+      tags   = hc.toAuditTags("HMRC Gateway - Enrolments Orchestrator - Agent Delete Response", request.path)
+    )
+
+    audit(event)
+  }
+
+  def auditFailedAgentDeleteResponse(agentReferenceNumber: String, terminationDate: Long, statusCode: Int, failureReason: String)(implicit request: Request[_]): Unit = {
+    val event = ExtendedDataEvent(
+      "enrolments-orchestrator",
+      "AgentDeleteResponse",
+      detail = Json.obj(
+        "agentReferenceNumber" -> agentReferenceNumber,
+        "terminationDate" -> terminationDate,
+        "statusCode" -> statusCode,
+        "failureReason" -> failureReason,
+        "success" -> false
+      ),
+      tags   = hc.toAuditTags("HMRC Gateway - Enrolments Orchestrator - Agent Delete Response", request.path)
+    )
+
+    audit(event)
+  }
+
+  private def audit(event: ExtendedDataEvent): Future[Unit] = {
+    auditConnector.sendExtendedEvent(event).map(_ => ()).recover {
+      case t =>
+        logger.error(s"Failed sending audit message", t)
     }
-  }
-
-  def auditDeleteRequestEvent(agentDeleteRequest: AgentDeleteRequest): ExtendedDataEvent = {
-    val auditType: String = "AgentDeleteRequest"
-    ExtendedDataEvent(
-      AUDIT_SOURCE,
-      auditType,
-      detail = Json toJson agentDeleteRequest
-    )
-  }
-
-  def auditAgentDeleteResponseEvent(agentDeleteResponse: AgentDeleteResponse): ExtendedDataEvent = {
-    val auditType: String = "AgentDeleteResponse"
-    ExtendedDataEvent(
-      AUDIT_SOURCE,
-      auditType,
-      detail = Json toJson agentDeleteResponse
-    )
   }
 
 }

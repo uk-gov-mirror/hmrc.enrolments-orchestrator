@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,78 +16,136 @@
 
 package uk.gov.hmrc.enrolmentsorchestrator.services
 
-import org.mockito.ArgumentMatchers.{any, eq => eqTo}
-import org.mockito.Mockito.when
-import org.scalatestplus.mockito.MockitoSugar
-import play.api.Logger
-import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.enrolmentsorchestrator.models._
-import uk.gov.hmrc.enrolmentsorchestrator.{LogCapturing, UnitSpec}
-import uk.gov.hmrc.http.Upstream4xxResponse
+import org.mockito.captor.ArgCaptor
+import org.mockito.scalatest.MockitoSugar
+import play.api.libs.json.Json
+import play.api.test.FakeRequest
+import uk.gov.hmrc.enrolmentsorchestrator.UnitSpec
+import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class AuditServiceSpec extends UnitSpec with LogCapturing with MockitoSugar {
+class AuditServiceSpec extends UnitSpec with MockitoSugar {
 
-  val AUDIT_SOURCE = "enrolments-orchestrator"
-  val mockAuditConnector: AuditConnector = mock[AuditConnector]
-  val auditService = new AuditService(mockAuditConnector)
+  "The auditing service" should {
+    "send the correct audit event for an agent delete request" in new Setup {
+      val captor = ArgCaptor[ExtendedDataEvent]
+      val arn = "agent ref no"
+      val timestamp = 1234567890L
 
-  def auditEventAssert(auditEvent: ExtendedDataEvent, auditType: String, agentDeleteResponseJson: JsValue): Unit = {
-    auditEvent.auditSource shouldBe AUDIT_SOURCE
-    auditEvent.auditType shouldBe auditType
-    auditEvent.detail shouldBe agentDeleteResponseJson
+      when(mockAuditConnector.sendExtendedEvent(captor)(any, any)).thenReturn(Future.successful(AuditResult.Disabled))
+
+      auditService.auditDeleteRequest(arn, timestamp)(requestWithHeaders)
+
+      verify(mockAuditConnector).sendExtendedEvent(captor)(any, any)
+      val event = captor.value
+
+      event.auditSource shouldBe "enrolments-orchestrator"
+      event.auditType shouldBe "AgentDeleteRequest"
+      event.detail shouldBe Json.obj(
+        "agentReferenceNumber" -> arn,
+        "terminationDate" -> timestamp
+      )
+      event.tags shouldBe Map(
+        "clientIP" -> clientIp,
+        "path" -> requestWithHeaders.path,
+        HeaderNames.xSessionId -> sessionId,
+        HeaderNames.akamaiReputation -> clientReputation,
+        HeaderNames.xRequestId -> requestId,
+        HeaderNames.deviceID -> deviceId,
+        "clientPort" -> clientPort,
+        "transactionName" -> "HMRC Gateway - Enrolments Orchestrator - Agent Delete Request"
+      )
+    }
+
+    "send the correct audit event for a successful agent delete response" in new Setup {
+      val captor = ArgCaptor[ExtendedDataEvent]
+      val arn = "agent ref no"
+      val timestamp = 1234567890L
+
+      when(mockAuditConnector.sendExtendedEvent(captor)(any, any)).thenReturn(Future.successful(AuditResult.Disabled))
+
+      auditService.auditSuccessfulAgentDeleteResponse(arn, timestamp, 200)(requestWithHeaders)
+
+      verify(mockAuditConnector).sendExtendedEvent(captor)(any, any)
+      val event = captor.value
+
+      event.auditSource shouldBe "enrolments-orchestrator"
+      event.auditType shouldBe "AgentDeleteResponse"
+      event.detail shouldBe Json.obj(
+        "agentReferenceNumber" -> arn,
+        "terminationDate" -> timestamp,
+        "statusCode" -> 200,
+        "success" -> true
+      )
+      event.tags shouldBe Map(
+        "clientIP" -> clientIp,
+        "path" -> requestWithHeaders.path,
+        HeaderNames.xSessionId -> sessionId,
+        HeaderNames.akamaiReputation -> clientReputation,
+        HeaderNames.xRequestId -> requestId,
+        HeaderNames.deviceID -> deviceId,
+        "clientPort" -> clientPort,
+        "transactionName" -> "HMRC Gateway - Enrolments Orchestrator - Agent Delete Response"
+      )
+    }
+
+    "send the correct audit event for a failed agent delete response" in new Setup {
+      val captor = ArgCaptor[ExtendedDataEvent]
+      val arn = "agent ref no"
+      val timestamp = 1234567890L
+
+      when(mockAuditConnector.sendExtendedEvent(captor)(any, any)).thenReturn(Future.successful(AuditResult.Disabled))
+
+      auditService.auditFailedAgentDeleteResponse(arn, timestamp, 400, "bad stuff happened")(requestWithHeaders)
+
+      verify(mockAuditConnector).sendExtendedEvent(captor)(any, any)
+      val event = captor.value
+
+      event.auditSource shouldBe "enrolments-orchestrator"
+      event.auditType shouldBe "AgentDeleteResponse"
+      event.detail shouldBe Json.obj(
+        "agentReferenceNumber" -> arn,
+        "terminationDate" -> timestamp,
+        "statusCode" -> 400,
+        "success" -> false,
+        "failureReason" -> "bad stuff happened"
+      )
+      event.tags shouldBe Map(
+        "clientIP" -> clientIp,
+        "path" -> requestWithHeaders.path,
+        HeaderNames.xSessionId -> sessionId,
+        HeaderNames.akamaiReputation -> clientReputation,
+        HeaderNames.xRequestId -> requestId,
+        HeaderNames.deviceID -> deviceId,
+        "clientPort" -> clientPort,
+        "transactionName" -> "HMRC Gateway - Enrolments Orchestrator - Agent Delete Response"
+      )
+    }
   }
 
-  "The AuditHelper" should {
+  trait Setup {
+    val userIdentifier = "somebody"
+    val clientIp = "192.168.0.1"
+    val clientPort = "443"
+    val clientReputation = "totally reputable"
+    val requestId = "requestId"
+    val deviceId = "deviceId"
+    val sessionId = "sessionId"
+    val trustId = "someTrustId"
 
-    "create an AgentDeleteRequest when a request is received by the service" in {
-      val auditType: String = "AgentDeleteRequest"
-      val testAgentDeleteRequest: AgentDeleteRequest = AgentDeleteRequest("XXXX1234567", 15797056635L)
-      val agentDeleteResponseJson = Json toJson testAgentDeleteRequest
-      val auditEventRequest = auditService.auditDeleteRequestEvent(testAgentDeleteRequest)
+    val requestWithHeaders = FakeRequest()
+      .withHeaders(HeaderNames.trueClientIp -> clientIp)
+      .withHeaders(HeaderNames.trueClientPort -> clientPort)
+      .withHeaders(HeaderNames.akamaiReputation -> clientReputation)
+      .withHeaders(HeaderNames.xRequestId -> requestId)
+      .withHeaders(HeaderNames.deviceID -> deviceId)
+      .withHeaders(HeaderNames.xSessionId -> sessionId)
 
-      auditEventAssert(auditEventRequest, auditType, agentDeleteResponseJson)
-    }
+    val mockAuditConnector = mock[AuditConnector]
 
-    "create an AgentDeleteResponse when a failed response is received" in {
-      val auditType: String = "AgentDeleteResponse"
-      val testAgentDeleteResponse: AgentDeleteResponse = AgentDeleteResponse("XXXX1234567", 15797056635L, success = false, 500, Some("Internal Server Error"))
-      val agentDeleteResponseJson = Json toJson testAgentDeleteResponse
-      val auditEventResponse = auditService.auditAgentDeleteResponseEvent(testAgentDeleteResponse)
-
-      auditEventAssert(auditEventResponse, auditType, agentDeleteResponseJson)
-    }
-
-    "create an AgentDeleteResponse when a successful response is received" in {
-      val auditType: String = "AgentDeleteResponse"
-      val testAgentDeleteResponse: AgentDeleteResponse = AgentDeleteResponse("XXXX1234567", 15797056635L, success = false, 200, None)
-      val agentDeleteResponseJson = Json toJson testAgentDeleteResponse
-      val auditEventResponse = auditService.auditAgentDeleteResponseEvent(testAgentDeleteResponse)
-
-      auditEventAssert(auditEventResponse, auditType, agentDeleteResponseJson)
-    }
-
-    "able to recover from auditConnector failure and log the failure" in {
-      withCaptureOfLoggingFrom(Logger(classOf[AuditService])) { logEvents =>
-        val testAgentDeleteResponse: AgentDeleteResponse = AgentDeleteResponse("XXXX1234567", 15797056635L, success = false, 200, None)
-        val auditEventResponse = auditService.auditAgentDeleteResponseEvent(testAgentDeleteResponse)
-
-        when(mockAuditConnector.sendExtendedEvent(eqTo(auditEventResponse))(any(), any())).thenReturn(Future.failed(Upstream4xxResponse("", 404, 404)))
-
-        await(auditService.audit(auditEventResponse)).asInstanceOf[AuditResult.Failure].msg shouldBe AuditResult.Failure("Failed sending audit message").msg
-
-        logEvents.length shouldBe 1
-        logEvents.collectFirst {
-          case logEvent =>
-            logEvent.getMessage shouldBe s"Failed sending audit message"
-        }
-      }
-    }
-
+    val auditService = new AuditService(mockAuditConnector)(ExecutionContext.global)
   }
-
 }

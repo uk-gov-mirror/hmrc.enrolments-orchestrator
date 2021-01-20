@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,11 @@
 
 package uk.gov.hmrc.enrolmentsorchestrator.services
 
-import javax.inject.Inject
-import play.api.{Configuration, Logger, Logging}
+import play.api.{Configuration, Logging}
 import uk.gov.hmrc.enrolmentsorchestrator.connectors.EnrolmentsStoreConnector
 import uk.gov.hmrc.http.HeaderCarrier
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class DataCorrectionService @Inject() (

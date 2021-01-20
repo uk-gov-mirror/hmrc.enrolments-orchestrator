@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,6 @@
 
 package uk.gov.hmrc.enrolmentsorchestrator
 
-import java.nio.charset.StandardCharsets.UTF_8
-import java.util.Base64
-
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
@@ -33,8 +30,6 @@ trait AuthHelper extends MockitoSugar {
 
   val mockAuthConnector: AuthConnector = mock[AuthConnector]
   val authService: AuthService = new AuthService(mockAuthConnector)
-
-  def encodeToBase64(string: String): String = Base64.getEncoder.encodeToString(string.getBytes(UTF_8))
 
   val testHttpResponse = HttpResponse(200, responseHeaders = Map(AUTHORIZATION -> Seq("BEARER AUTHORIZATION")))
   when(mockAuthConnector.createBearerToken(any())(any(), any()))

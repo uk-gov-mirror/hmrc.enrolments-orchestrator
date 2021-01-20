@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,8 @@ import uk.gov.hmrc.http.HeaderCarrier
 import play.api.mvc.Request
 import play.api.test.FakeRequest
 
+import java.nio.charset.StandardCharsets.UTF_8
+import java.util.Base64
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
@@ -34,5 +36,7 @@ trait UnitSpec extends WordSpecLike with Matchers with OptionValues {
   def await[A](future: Future[A])(implicit timeout: Duration): A = Await.result(future, timeout)
 
   def status(result: Future[Result]): Int = await(result).header.status
+
+  def encodeToBase64(string: String): String = Base64.getEncoder.encodeToString(string.getBytes(UTF_8))
 
 }

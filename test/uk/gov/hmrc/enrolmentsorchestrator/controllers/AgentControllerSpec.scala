@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,188 +17,161 @@
 package uk.gov.hmrc.enrolmentsorchestrator.controllers
 
 import org.joda.time.DateTime
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.when
-import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.scalatest.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.mvc.AnyContentAsEmpty
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
+import uk.gov.hmrc.enrolmentsorchestrator.UnitSpec
 import uk.gov.hmrc.enrolmentsorchestrator.config.AppConfig
 import uk.gov.hmrc.enrolmentsorchestrator.connectors.AgentStatusChangeConnector
-import uk.gov.hmrc.enrolmentsorchestrator.models.{AgentDeleteRequest, AgentDeleteResponse}
-import uk.gov.hmrc.enrolmentsorchestrator.services.EnrolmentsStoreService
-import uk.gov.hmrc.enrolmentsorchestrator.{AuditHelper, AuthHelper, UnitSpec}
+import uk.gov.hmrc.enrolmentsorchestrator.models.BasicAuthentication
+import uk.gov.hmrc.enrolmentsorchestrator.services.{AuditService, AuthService, EnrolmentsStoreService}
+import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.http.{HttpResponse, Upstream4xxResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class AgentControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAppPerSuite with AuthHelper with AuditHelper {
-
-  val appConfig: AppConfig = app.injector.instanceOf[AppConfig]
-  val mockAgentStatusChangeConnector: AgentStatusChangeConnector = mock[AgentStatusChangeConnector]
-  val mockEnrolmentsStoreService: EnrolmentsStoreService = mock[EnrolmentsStoreService]
-
-  val controller = new AgentController(appConfig,
-                                       mockAuditService,
-                                       authService,
-                                       mockEnrolmentsStoreService,
-                                       mockAgentStatusChangeConnector,
-                                       Helpers.stubControllerComponents())
-
-  val unauthedRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest("DELETE", "/")
-  val authedRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest("DELETE", "/").withHeaders(AUTHORIZATION -> s"Basic ${encodeToBase64("AgentTermDESUser:password")}")
-
-  val testARN = "AARN123"
-  val testTerminationDate: Long = DateTime.now.toInstant.getMillis
-  override val testAgentDeleteRequest = AgentDeleteRequest(testARN, testTerminationDate)
+class AgentControllerSpec extends UnitSpec with MockitoSugar with GuiceOneAppPerSuite {
 
   "DELETE /enrolments-orchestrator/agents/:ARN?terminationDate=Option[Long] ?= None" should {
 
-    "return 200, Request received and the attempt at deletion will be processed" in {
+    "return 200, Request received and the attempt at deletion will be processed" in new Setup {
       val testHttpResponse = HttpResponse(204, responseString = Some("done"))
-      val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, success = true, 204, None)
-      val extendedDataEventRequest = auditDeleteRequestEvent(testAgentDeleteRequest)
-      val extendedDataEventResponse = auditAgentDeleteResponseEvent(testAgentDeleteResponse)
 
       val testAgentStatusChangeHttpResponse = HttpResponse(200, responseString = Some("done"))
-      when(mockAgentStatusChangeConnector.agentStatusChangeToTerminate(any())(any(), any()))
+      when(mockAgentStatusChangeConnector.agentStatusChangeToTerminate(any)(any, any))
         .thenReturn(Future.successful(testAgentStatusChangeHttpResponse))
 
-      when(mockEnrolmentsStoreService.terminationByEnrolmentKey(any())(any(), any()))
+      when(mockEnrolmentsStoreService.terminationByEnrolmentKey(any)(any, any))
         .thenReturn(Future.successful(testHttpResponse))
+      when(mockAuthService.createBearerToken(eqTo(Some(basicAuthHeader)))(any, any))
+        .thenReturn(Future.successful(Some(Authorization("pls"))))
+      doNothing.when(mockAuditService).auditDeleteRequest(any, any)(any)
+      doNothing.when(mockAuditService).auditSuccessfulAgentDeleteResponse(any, any, any)(any)
 
-      auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
-
-      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(authedRequest)
-
+      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(FakeRequest().withHeaders(AUTHORIZATION -> s"Basic ${encodeToBase64("AgentTermDESUser:password")}"))
       status(result) shouldBe OK
-      verifyAuditEvents(testAgentDeleteResponse)
     }
 
-    "return 401, Request received but request without a valid BasicAuth token" in {
-      val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, success = false, 401, Some("BasicAuthentication failed"))
-      val extendedDataEventRequest = auditDeleteRequestEvent(testAgentDeleteRequest)
-      val extendedDataEventResponse = auditAgentDeleteResponseEvent(testAgentDeleteResponse)
+    "return 401, Request received but request without a valid BasicAuth token" in new Setup {
+      when(mockAuthService.getBasicAuth(any)).thenReturn(None)
+      doNothing.when(mockAuditService).auditDeleteRequest(any, any)(any)
+      doNothing.when(mockAuditService).auditFailedAgentDeleteResponse(any, any, any, any)(any)
 
-      auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
-
-      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(unauthedRequest)
+      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(FakeRequest())
 
       status(result) shouldBe UNAUTHORIZED
-      verifyAuditEvents(testAgentDeleteResponse)
     }
 
-    "return 401, Request received but AgentStatusChange return 401 response" in {
-      val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, success = false, 401, Some("notAuthed"))
-      val extendedDataEventRequest = auditDeleteRequestEvent(testAgentDeleteRequest)
-      val extendedDataEventResponse = auditAgentDeleteResponseEvent(testAgentDeleteResponse)
-
+    "return 401, Request received but AgentStatusChange return 401 response" in new Setup {
       val testAgentStatusChangeHttpResponse = HttpResponse(401, responseString = Some("notAuthed"))
-      when(mockAgentStatusChangeConnector.agentStatusChangeToTerminate(any())(any(), any()))
+      when(mockAgentStatusChangeConnector.agentStatusChangeToTerminate(any)(any, any))
         .thenReturn(Future.successful(testAgentStatusChangeHttpResponse))
+      doNothing.when(mockAuditService).auditDeleteRequest(any, any)(any)
+      doNothing.when(mockAuditService).auditFailedAgentDeleteResponse(any, any, any, any)(any)
 
-      auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
-
-      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(authedRequest)
-
+      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(FakeRequest().withHeaders(AUTHORIZATION -> s"Basic ${encodeToBase64("AgentTermDESUser:password")}"))
       status(result) shouldBe UNAUTHORIZED
-      verifyAuditEvents(testAgentDeleteResponse)
     }
 
-    "return 401, Request received but AgentStatusChange throw 401 response" in {
-      val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, success = false, 401, Some("notAuthed"))
-      val extendedDataEventRequest = auditDeleteRequestEvent(testAgentDeleteRequest)
-      val extendedDataEventResponse = auditAgentDeleteResponseEvent(testAgentDeleteResponse)
-
-      when(mockAgentStatusChangeConnector.agentStatusChangeToTerminate(any())(any(), any()))
+    "return 401, Request received but AgentStatusChange throw 401 response" in new Setup {
+      when(mockAgentStatusChangeConnector.agentStatusChangeToTerminate(any)(any, any))
         .thenReturn(Future.failed(Upstream4xxResponse("notAuthed", 401, 401)))
+      doNothing.when(mockAuditService).auditDeleteRequest(any, any)(any)
+      doNothing.when(mockAuditService).auditFailedAgentDeleteResponse(any, any, any, any)(any)
 
-      auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
-
-      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(authedRequest)
+      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(FakeRequest().withHeaders(AUTHORIZATION -> s"Basic ${encodeToBase64("AgentTermDESUser:password")}"))
 
       status(result) shouldBe UNAUTHORIZED
-      verifyAuditEvents(testAgentDeleteResponse)
     }
 
-    "return 401, Request received but tax-enrolment throw 401 response" in {
-      val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, success = false, 401, Some("notAuthed"))
-      val extendedDataEventRequest = auditDeleteRequestEvent(testAgentDeleteRequest)
-      val extendedDataEventResponse = auditAgentDeleteResponseEvent(testAgentDeleteResponse)
-
+    "return 401, Request received but tax-enrolment throw 401 response" in new Setup {
       val testAgentStatusChangeHttpResponse = HttpResponse(200, responseString = Some("done"))
-      when(mockAgentStatusChangeConnector.agentStatusChangeToTerminate(any())(any(), any()))
+
+      when(mockAuthService.createBearerToken(eqTo(Some(basicAuthHeader)))(any, any))
+        .thenReturn(Future.successful(Some(Authorization("pls"))))
+      when(mockAgentStatusChangeConnector.agentStatusChangeToTerminate(any)(any, any))
         .thenReturn(Future.successful(testAgentStatusChangeHttpResponse))
-
-      when(mockEnrolmentsStoreService.terminationByEnrolmentKey(any())(any(), any()))
+      when(mockEnrolmentsStoreService.terminationByEnrolmentKey(any)(any, any))
         .thenReturn(Future.failed(Upstream4xxResponse("notAuthed", 401, 401)))
+      doNothing.when(mockAuditService).auditDeleteRequest(any, any)(any)
+      doNothing.when(mockAuditService).auditFailedAgentDeleteResponse(any, any, any, any)(any)
 
-      auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
-
-      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(authedRequest)
+      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(FakeRequest().withHeaders(AUTHORIZATION -> s"Basic ${encodeToBase64("AgentTermDESUser:password")}"))
 
       status(result) shouldBe UNAUTHORIZED
-      verifyAuditEvents(testAgentDeleteResponse)
     }
 
-    "return 500 if down stream services return 500" in {
+    "return 500 if down stream services return 500" in new Setup {
       val testHttpResponse = HttpResponse(500, responseString = Some("error"))
-      val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, success = false, 500, Some("error"))
-      val extendedDataEventRequest = auditDeleteRequestEvent(testAgentDeleteRequest)
-      val extendedDataEventResponse = auditAgentDeleteResponseEvent(testAgentDeleteResponse)
 
       val testAgentStatusChangeHttpResponse = HttpResponse(200, responseString = Some("done"))
-      when(mockAgentStatusChangeConnector.agentStatusChangeToTerminate(any())(any(), any()))
-        .thenReturn(Future.successful(testAgentStatusChangeHttpResponse))
 
-      when(mockEnrolmentsStoreService.terminationByEnrolmentKey(any())(any(), any()))
+      when(mockAuthService.createBearerToken(eqTo(Some(basicAuthHeader)))(any, any))
+        .thenReturn(Future.successful(Some(Authorization("pls"))))
+      when(mockAgentStatusChangeConnector.agentStatusChangeToTerminate(any)(any, any))
+        .thenReturn(Future.successful(testAgentStatusChangeHttpResponse))
+      when(mockEnrolmentsStoreService.terminationByEnrolmentKey(any)(any, any))
         .thenReturn(Future.successful(testHttpResponse))
 
-      auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
+      doNothing.when(mockAuditService).auditDeleteRequest(any, any)(any)
+      doNothing.when(mockAuditService).auditFailedAgentDeleteResponse(any, any, any, any)(any)
 
-      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(authedRequest)
+      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(FakeRequest().withHeaders(AUTHORIZATION -> s"Basic ${encodeToBase64("AgentTermDESUser:password")}"))
 
       status(result) shouldBe INTERNAL_SERVER_ERROR
-      verifyAuditEvents(testAgentDeleteResponse)
     }
 
-    "return 500 if there are anything wrong with down stream such as EnrolmentsStore" in {
-      val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, success = false, 500, Some("Internal service error"))
-      val extendedDataEventRequest = auditDeleteRequestEvent(testAgentDeleteRequest)
-      val extendedDataEventResponse = auditAgentDeleteResponseEvent(testAgentDeleteResponse)
-
+    "return 500 if there are anything wrong with down stream such as EnrolmentsStore" in new Setup {
       val testAgentStatusChangeHttpResponse = HttpResponse(200, responseString = Some("done"))
-      when(mockAgentStatusChangeConnector.agentStatusChangeToTerminate(any())(any(), any()))
+
+      when(mockAuthService.createBearerToken(eqTo(Some(basicAuthHeader)))(any, any))
+        .thenReturn(Future.successful(Some(Authorization("pls"))))
+      when(mockAgentStatusChangeConnector.agentStatusChangeToTerminate(any)(any, any))
         .thenReturn(Future.successful(testAgentStatusChangeHttpResponse))
 
-      when(mockEnrolmentsStoreService.terminationByEnrolmentKey(any())(any(), any()))
+      when(mockEnrolmentsStoreService.terminationByEnrolmentKey(any)(any, any))
         .thenReturn(Future.failed(new RuntimeException))
+      doNothing.when(mockAuditService).auditDeleteRequest(any, any)(any)
+      doNothing.when(mockAuditService).auditFailedAgentDeleteResponse(any, any, any, any)(any)
 
-      auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
-
-      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(authedRequest)
-
-      status(result) shouldBe INTERNAL_SERVER_ERROR
-      verifyAuditEvents(testAgentDeleteResponse)
-    }
-
-    "return 500 if there are anything wrong with down stream such as AgentStatusChange" in {
-      val testAgentDeleteResponse = AgentDeleteResponse(testARN, testTerminationDate, success = false, 500, Some("Internal service error"))
-      val extendedDataEventRequest = auditDeleteRequestEvent(testAgentDeleteRequest)
-      val extendedDataEventResponse = auditAgentDeleteResponseEvent(testAgentDeleteResponse)
-
-      when(mockAgentStatusChangeConnector.agentStatusChangeToTerminate(any())(any(), any()))
-        .thenReturn(Future.failed(new RuntimeException))
-
-      auditMockSetup(testAgentDeleteResponse, extendedDataEventRequest, extendedDataEventResponse)
-
-      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(authedRequest)
-
+      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(FakeRequest().withHeaders(AUTHORIZATION -> s"Basic ${encodeToBase64("AgentTermDESUser:password")}"))
       status(result) shouldBe INTERNAL_SERVER_ERROR
     }
 
+    "return 500 if there are anything wrong with down stream such as AgentStatusChange" in new Setup {
+      when(mockAgentStatusChangeConnector.agentStatusChangeToTerminate(any)(any, any))
+        .thenReturn(Future.failed(new RuntimeException))
+      doNothing.when(mockAuditService).auditDeleteRequest(any, any)(any)
+      doNothing.when(mockAuditService).auditFailedAgentDeleteResponse(any, any, any, any)(any)
+
+      val result = controller.deleteByARN(testARN, Some(testTerminationDate))(FakeRequest().withHeaders(AUTHORIZATION -> s"Basic ${encodeToBase64("AgentTermDESUser:password")}"))
+      status(result) shouldBe INTERNAL_SERVER_ERROR
+    }
+  }
+
+  trait Setup {
+    val testARN = "AARN123"
+    val testTerminationDate: Long = DateTime.now.toInstant.getMillis
+    val basicAuthHeader = BasicAuthentication("AgentTermDESUser", "password")
+
+    val appConfig = app.injector.instanceOf[AppConfig]
+    val mockAgentStatusChangeConnector = mock[AgentStatusChangeConnector]
+    val mockEnrolmentsStoreService = mock[EnrolmentsStoreService]
+    val mockAuditService = mock[AuditService]
+    val mockAuthService = mock[AuthService]
+
+    when(mockAuthService.getBasicAuth(any)).thenReturn(Some(basicAuthHeader))
+
+    val controller = new AgentController(
+      appConfig,
+      mockAuditService,
+      mockAuthService,
+      mockEnrolmentsStoreService,
+      mockAgentStatusChangeConnector,
+      Helpers.stubControllerComponents()
+    )
   }
 
 }
