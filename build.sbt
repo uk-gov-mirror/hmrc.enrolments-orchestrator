@@ -1,5 +1,5 @@
 import scoverage.ScoverageKeys._
-import uk.gov.hmrc.DefaultBuildSettings.{addTestReportOption, integrationTestSettings}
+import uk.gov.hmrc.DefaultBuildSettings.integrationTestSettings
 import uk.gov.hmrc.ServiceManagerPlugin.Keys.itDependenciesList
 import uk.gov.hmrc.ServiceManagerPlugin.serviceManagerSettings
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
@@ -43,12 +43,7 @@ lazy val microservice = Project(appName, file("."))
   .settings(ScoverageSettings())
   .settings(SilencerSettings())
   .settings(inConfig(IntegrationTest)(Defaults.itSettings): _*)
+  .settings(integrationTestSettings())
   .settings(serviceManagerSettings: _*)
   .settings(itDependenciesList := externalServices)
-  .settings(
-    Keys.fork in IntegrationTest := false,
-    unmanagedSourceDirectories in IntegrationTest := (baseDirectory in IntegrationTest) (base => Seq(base / "it")).value,
-    addTestReportOption(IntegrationTest, "int-test-reports"),
-    parallelExecution in IntegrationTest := false
-  )
   .settings(resolvers += Resolver.jcenterRepo)
